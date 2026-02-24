@@ -400,3 +400,52 @@ def test_db_init_with_v2_yaml(tmp_path):
     output = json.loads(result.stdout)
     assert output["status"] == "ok"
     assert output["tasks"] > 0
+
+
+# ---------------------------------------------------------------------------
+# Integration tests: db.py validate command
+# ---------------------------------------------------------------------------
+
+
+def test_db_validate_command_valid():
+    """db.py validate succeeds on valid v2 YAML."""
+    result = subprocess.run(
+        [
+            "uv", "run", "python", "skills/db.py", "validate",
+            "--dag", "dags/sra.yaml",
+            "--ticker", "TEST",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/Users/drucev/projects/sra2",
+    )
+    assert result.returncode == 0, f"stderr: {result.stderr}\nstdout: {result.stdout}"
+    import json
+    output = json.loads(result.stdout)
+    assert output["status"] == "ok"
+
+
+def test_db_validate_command_invalid(tmp_path):
+    """db.py validate fails on invalid YAML with clear error."""
+    bad_yaml = tmp_path / "bad.yaml"
+    bad_yaml.write_text("""
+dag:
+  version: 2
+  name: Bad
+tasks:
+  broken:
+    description: Missing type
+    config:
+      command: echo hi
+""")
+    result = subprocess.run(
+        [
+            "uv", "run", "python", "skills/db.py", "validate",
+            "--dag", str(bad_yaml),
+            "--ticker", "TEST",
+        ],
+        capture_output=True,
+        text=True,
+        cwd="/Users/drucev/projects/sra2",
+    )
+    assert result.returncode == 1

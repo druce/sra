@@ -10,6 +10,7 @@ Usage:
 
 Commands:
     init            Create db, parse DAG YAML, populate tasks + deps
+    validate        Validate a DAG YAML file without touching the database
     task-ready      JSON array of dispatchable tasks
     task-get        Full task config as JSON
     task-update     Update task state
@@ -485,6 +486,35 @@ def cmd_research_update(args: argparse.Namespace) -> None:
     }))
 
 
+def cmd_validate(args: argparse.Namespace) -> None:
+    """Validate a DAG YAML file without touching the database."""
+    dag_path = Path(args.dag)
+    if not dag_path.exists():
+        error_exit(f"DAG file not found: {dag_path}")
+
+    with dag_path.open('r') as f:
+        raw = yaml.safe_load(f)
+
+    variables = {
+        'ticker': args.ticker,
+        'date': getattr(args, 'date', '20260101'),
+        'workdir': getattr(args, 'workdir', '/tmp/validate') if hasattr(args, 'workdir') and args.workdir else '/tmp/validate',
+    }
+
+    try:
+        from schema import load_dag
+        dag = load_dag(raw, variables)
+    except Exception as e:
+        error_exit(f"Validation failed: {e}")
+
+    print(json.dumps({
+        "status": "ok",
+        "version": dag.dag.version,
+        "tasks": len(dag.tasks),
+        "task_types": sorted(set(t.type for t in dag.tasks.values())),
+    }))
+
+
 # ============================================================================
 # CLI
 # ============================================================================
@@ -545,6 +575,12 @@ def main() -> int:
     p_rupdate.add_argument('--status', required=True,
                            choices=['not started', 'running', 'complete', 'failed'])
 
+    # validate
+    p_validate = subparsers.add_parser('validate', help='Validate a DAG YAML file')
+    p_validate.add_argument('--dag', default='dags/sra.yaml')
+    p_validate.add_argument('--ticker', default='VALIDATE')
+    p_validate.add_argument('--date', default='20260101')
+
     args = parser.parse_args()
 
     if not args.command:
@@ -560,6 +596,7 @@ def main() -> int:
         'artifact-list': cmd_artifact_list,
         'status': cmd_status,
         'research-update': cmd_research_update,
+        'validate': cmd_validate,
     }
 
     cmd_func = commands.get(args.command)
