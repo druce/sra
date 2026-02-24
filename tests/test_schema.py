@@ -310,3 +310,45 @@ def test_validate_dag_duplicate_output_paths():
     }
     with pytest.raises(ValueError, match="same.txt"):
         validate_dag(raw)
+
+
+# ---------------------------------------------------------------------------
+# Variable substitution tests (load_dag)
+# ---------------------------------------------------------------------------
+
+from schema import load_dag
+
+
+def test_load_dag_substitutes_variables():
+    raw = {
+        "dag": {"version": 2, "name": "Test", "inputs": {"ticker": "${ticker}", "workdir": "${workdir}"}},
+        "tasks": {
+            "profile": {
+                "description": "Get profile",
+                "type": "python",
+                "config": {"script": "skills/run.py", "args": {"ticker": "${ticker}", "workdir": "${workdir}"}},
+                "outputs": {"profile": {"path": "artifacts/profile.json", "format": "json"}},
+            },
+        },
+    }
+    variables = {"ticker": "AAPL", "workdir": "work/AAPL_20260223"}
+    dag = load_dag(raw, variables)
+    task = dag.tasks["profile"]
+    assert task.config.args["ticker"] == "AAPL"
+    assert task.config.args["workdir"] == "work/AAPL_20260223"
+
+
+def test_load_dag_substitutes_in_prompt():
+    raw = {
+        "dag": {"version": 2, "name": "Test"},
+        "tasks": {
+            "write": {
+                "description": "Write",
+                "type": "claude",
+                "config": {"prompt": "Analyze ${ticker} stock"},
+            },
+        },
+    }
+    variables = {"ticker": "MSFT"}
+    dag = load_dag(raw, variables)
+    assert dag.tasks["write"].config.prompt == "Analyze MSFT stock"

@@ -195,3 +195,41 @@ def validate_dag(raw: dict) -> DagFile:
             seen_paths[out_def.path] = task_id
 
     return dag
+
+
+# ---------------------------------------------------------------------------
+# Variable substitution and entry point
+# ---------------------------------------------------------------------------
+
+def _substitute_vars(obj, variables: dict):
+    """Recursively substitute ${var} placeholders in strings."""
+    if isinstance(obj, str):
+        for key, value in variables.items():
+            obj = obj.replace(f"${{{key}}}", str(value))
+        return obj
+    elif isinstance(obj, dict):
+        return {k: _substitute_vars(v, variables) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [_substitute_vars(item, variables) for item in obj]
+    return obj
+
+
+def load_dag(raw: dict, variables: dict | None = None) -> DagFile:
+    """Load, substitute variables, validate, and return a DagFile.
+
+    This is the main entry point for parsing a DAG YAML dict.
+
+    Args:
+        raw: The raw dict from yaml.safe_load()
+        variables: Variable substitutions (ticker, workdir, date, etc.)
+
+    Returns:
+        Validated DagFile instance
+
+    Raises:
+        ValueError: On validation errors (bad refs, cycles, etc.)
+        pydantic.ValidationError: On structural errors (missing fields, wrong types)
+    """
+    if variables:
+        raw = _substitute_vars(raw, variables)
+    return validate_dag(raw)
