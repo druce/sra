@@ -2,7 +2,7 @@
 description: Generate stock chart and technical indicators for a ticker
 ---
 
-Run the fetch_technical skill for the given ticker.
+# Run the fetch_technical skill for the given ticker
 
 **Arguments:** $ARGUMENTS (expects: SYMBOL --workdir DIR)
 

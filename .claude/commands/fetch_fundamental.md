@@ -2,7 +2,7 @@
 description: Fetch financial statements, ratios, and analyst data for a ticker
 ---
 
-Run the fetch_fundamental skill for the given ticker.
+# Run the fetch_fundamental skill for the given ticker
 
 **Arguments:** $ARGUMENTS (expects: SYMBOL --workdir DIR [--peers-file PATH])
 
