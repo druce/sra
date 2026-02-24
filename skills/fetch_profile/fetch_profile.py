@@ -39,7 +39,7 @@ if str(_SKILLS_DIR) not in sys.path:
 # isort: split
 
 from config import MAX_PEERS_TO_FETCH, CLAUDE_MODEL  # noqa: E402
-from utils import setup_logging, validate_symbol, ensure_directory, format_currency, load_environment  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, format_currency, load_environment, default_workdir  # noqa: E402
 
 load_environment()
 
@@ -524,8 +524,8 @@ def main() -> int:
     )
     parser.add_argument(
         '--workdir',
-        required=True,
-        help='Work directory path'
+        default=None,
+        help='Work directory path (default: work/SYMBOL_YYYYMMDD)'
     )
     parser.add_argument(
         '--peers',
@@ -553,7 +553,7 @@ def main() -> int:
         print(json.dumps(manifest, indent=2))
         return 2
 
-    workdir = Path(args.workdir)
+    workdir = Path(args.workdir or default_workdir(symbol))
     artifacts_dir = ensure_directory(workdir / 'artifacts')
 
     logger.info(f"{'=' * 60}")

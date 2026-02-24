@@ -37,7 +37,7 @@ if str(_SKILLS_DIR) not in sys.path:
 # isort: split
 
 from config import SEC_FILING_FORMS, SEC_LOOKBACK_DAYS, SEC_10K_ITEMS, SEC_10Q_ITEMS  # noqa: E402
-from utils import setup_logging, validate_symbol, ensure_directory, load_environment  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, load_environment, default_workdir  # noqa: E402
 
 
 load_environment()
@@ -699,7 +699,7 @@ def main() -> int:
         description="SEC EDGAR filing research via edgartools"
     )
     parser.add_argument("symbol", help="Stock ticker symbol (e.g. AAPL)")
-    parser.add_argument("--workdir", required=True, help="Work directory path")
+    parser.add_argument("--workdir", default=None, help="Work directory path (default: work/SYMBOL_YYYYMMDD)")
     parser.add_argument("--skip-financials", action="store_true",
                         help="Skip financial statement extraction")
     parser.add_argument("--skip-8k", action="store_true",
@@ -714,7 +714,7 @@ def main() -> int:
         print(json.dumps(_build_manifest("error", [], str(ve))))
         return 2
 
-    workdir = Path(args.workdir)
+    workdir = Path(args.workdir or default_workdir(symbol))
     ensure_directory(workdir / "artifacts")
 
     # ---- Initialise edgartools ----

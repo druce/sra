@@ -53,7 +53,7 @@ from config import (  # noqa: E402
     RETRY_DELAY_SECONDS,
     RETRY_BACKOFF_MULTIPLIER,
 )
-from utils import setup_logging, validate_symbol, ensure_directory, load_environment  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, load_environment, default_workdir  # noqa: E402
 
 load_environment()
 
@@ -571,8 +571,8 @@ def main() -> int:
     )
     parser.add_argument(
         '--workdir',
-        required=True,
-        help='Work directory path'
+        default=None,
+        help='Work directory path (default: work/SYMBOL_YYYYMMDD)'
     )
 
     args = parser.parse_args()
@@ -589,7 +589,7 @@ def main() -> int:
         print(json.dumps(manifest, indent=2))
         return 2
 
-    workdir = Path(args.workdir)
+    workdir = Path(args.workdir or default_workdir(symbol))
     ensure_directory(workdir / 'artifacts')
 
     # Resolve company name

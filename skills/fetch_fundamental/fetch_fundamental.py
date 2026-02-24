@@ -45,7 +45,7 @@ from config import (  # noqa: E402
     MAX_NEWS_ARTICLES,
     CHART_SCALE,
 )
-from utils import setup_logging, validate_symbol, ensure_directory  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -851,8 +851,8 @@ def main() -> int:
         description="Fundamental analysis: financial statements, ratios, recommendations, news."
     )
     parser.add_argument("symbol", help="Stock ticker symbol (e.g. TSLA)")
-    parser.add_argument("--workdir", required=True,
-                        help="Working directory path")
+    parser.add_argument("--workdir", default=None,
+                        help="Working directory path (default: work/SYMBOL_YYYYMMDD)")
     parser.add_argument(
         "--peers-file",
         default=None,
@@ -870,7 +870,7 @@ def main() -> int:
         print(json.dumps(manifest))
         return 2
 
-    work_dir = Path(args.workdir)
+    work_dir = Path(args.workdir or default_workdir(symbol))
     peers_file = args.peers_file
 
     # Ensure artifacts directory exists

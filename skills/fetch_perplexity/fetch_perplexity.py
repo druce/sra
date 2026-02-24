@@ -47,7 +47,7 @@ from config import (  # noqa: E402
     RETRY_DELAY_SECONDS,
     RETRY_BACKOFF_MULTIPLIER,
 )
-from utils import setup_logging, validate_symbol, ensure_directory, load_environment  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, load_environment, default_workdir  # noqa: E402
 
 load_environment()
 
@@ -385,7 +385,7 @@ def main() -> int:
         description="Perplexity AI research: news, business profile, executive profiles"
     )
     parser.add_argument("symbol", help="Stock ticker symbol (e.g. AAPL)")
-    parser.add_argument("--workdir", required=True, help="Working directory path")
+    parser.add_argument("--workdir", default=None, help="Working directory path (default: work/SYMBOL_YYYYMMDD)")
     args = parser.parse_args()
 
     # Validate symbol
@@ -397,7 +397,7 @@ def main() -> int:
         print(json.dumps(manifest, indent=2))
         return 2
 
-    workdir = args.workdir
+    workdir = args.workdir or default_workdir(symbol)
     logger.info("Starting Perplexity research for %s", symbol)
     logger.info("Working directory: %s", workdir)
 

@@ -4,7 +4,7 @@ description: Generate business model, competitive, risk, and investment analysis
 
 Run the fetch_perplexity_analysis skill for the given ticker.
 
-**Arguments:** $ARGUMENTS (expects: SYMBOL --workdir DIR)
+**Arguments:** $ARGUMENTS (expects: SYMBOL [--workdir DIR])
 
 ```bash
 uv run ./skills/fetch_perplexity_analysis/fetch_perplexity_analysis.py $ARGUMENTS

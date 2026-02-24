@@ -37,7 +37,7 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from utils import setup_logging, validate_symbol, ensure_directory  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
 
 
 from config import (  # noqa: E402
@@ -509,8 +509,8 @@ def main() -> int:
     parser.add_argument("symbol", help="Stock ticker symbol")
     parser.add_argument(
         "--workdir",
-        required=True,
-        help="Working directory (artifacts written to WORKDIR/artifacts/)",
+        default=None,
+        help="Working directory (default: work/SYMBOL_YYYYMMDD)",
     )
 
     args = parser.parse_args()
@@ -527,7 +527,7 @@ def main() -> int:
         print(json.dumps(manifest, indent=2))
         return 2
 
-    work_dir = Path(args.workdir)
+    work_dir = Path(args.workdir or default_workdir(symbol))
     logger.info(f"=== research_technical: {symbol}  workdir={work_dir} ===")
 
     # ---- Task 1: chart ----

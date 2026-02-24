@@ -79,6 +79,22 @@ def setup_logging(
     return logger
 
 
+def default_workdir(symbol: str) -> str:
+    """
+    Return the default workdir path for a symbol: work/{SYMBOL}_{YYYYMMDD}.
+
+    Does NOT create the directory — scripts already call ensure_directory.
+
+    Args:
+        symbol: Stock ticker symbol (uppercase).
+
+    Returns:
+        String path like 'work/TSLA_20260224'.
+    """
+    date_str = datetime.now().strftime(DATE_FORMAT_FILE)
+    return f"{WORK_DIR}/{symbol}_{date_str}"
+
+
 def create_work_directory(
     symbol: str,
     base_dir: Union[str, Path] = WORK_DIR,

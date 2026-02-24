@@ -33,7 +33,7 @@ if str(_SKILLS_DIR) not in sys.path:
 # isort: split
 
 from config import MAX_RETRIES, RETRY_DELAY_SECONDS  # noqa: E402
-from utils import setup_logging, validate_symbol, ensure_directory  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
 
 logger = setup_logging(__name__)
 
@@ -285,7 +285,7 @@ def main() -> int:
         description="Fetch Wikipedia summary for a stock symbol's company.",
     )
     parser.add_argument("symbol", help="Stock ticker symbol (e.g. TSLA)")
-    parser.add_argument("--workdir", required=True, help="Working directory path")
+    parser.add_argument("--workdir", default=None, help="Working directory path (default: work/SYMBOL_YYYYMMDD)")
 
     args = parser.parse_args()
 
@@ -298,7 +298,7 @@ def main() -> int:
         print(json.dumps(manifest))
         return 2
 
-    workdir = args.workdir
+    workdir = args.workdir or default_workdir(symbol)
 
     # Ensure artifacts directory exists
     artifacts_dir = ensure_directory(Path(workdir) / "artifacts")
