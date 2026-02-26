@@ -194,12 +194,9 @@ tasks:
       system: "You are a senior equity research analyst writing a professional report."
       tools: [read, write]
       prompt: |
-        read the draft report body at artifacts/draft_report_body.md carefully and write a conclusion.
+        read the draft report body at artifacts/draft_report_body.md carefully and write a concluding 1-3 short paragraphs < 500 words total.
             • Summarize the company's strategic position and the stock's investment risk/reward profile
-            • Strengths, weaknesses, opportunities, threats (SWOT)
-            • Bear case and bull case
-            • The level of risk
-            • Any critical "watch points" for further due diligence and ongoing monitoring
+            • Do not repeat at length but draw on the most salient points from the report body: SWOT, bull/bear cases, risk assessment, and monitoring watchpoints.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
@@ -248,11 +245,12 @@ tasks:
         Read the assembled report at artifacts/report_body.md carefully and provide a detailed critique.
 
         Evaluate the report for:
+        - Clarity and readability
+        - Repetition; For instance, early summary sections can refer to supply chain issues but should not go into details if this is discussed comprehensively later.
         - Factual accuracy and consistency
         - Missing or incomplete analysis
         - Logical flow and structure
         - Data quality and sourcing
-        - Clarity and readability
         - Professional tone and formatting
         - Unsupported claims or speculation
         - Areas needing additional research or verification
@@ -275,13 +273,14 @@ tasks:
         Read the critique at artifacts/report_critique.md and the current report at artifacts/report_body.md.
 
         Carefully address each issue identified in the critique:
-        - Fix any factual inaccuracies or inconsistencies
-        - Fill in missing or incomplete analysis
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies or inconsistencies. Attempt to verify in the available artifacts. Delete statements or make them more general rather than embarking on new research.
+        - Elaborate on missing or incomplete analysis. Again, use existing artifacts rather than going down a new rabbit hole.
         - Improve logical flow and structure
         - Enhance data quality and sourcing citations
-        - Improve clarity and readability
         - Ensure professional tone and formatting
-        - Remove or substantiate any unsupported claims
+        - Remove or substantiate any unsupported claims using provided artifacts.
 
         Save the revised report to artifacts/report_body_final.md.
     outputs:
