@@ -6,6 +6,7 @@ dag:
     workdir: "${workdir}"
   root_dir: /Users/drucev/projects/sra4
   template_dir: templates
+  drafts_dir: drafts
   data_dir: data # not implemented, in future write reports based on user-provided data
   allowed_tools: all # not implemented, all allowed, in future limit tools
 
