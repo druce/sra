@@ -143,7 +143,7 @@ def main() -> int:
         "company_name": profile.get("company_name", args.ticker),
         "sector": profile.get("sector", "N/A"),
         "industry": profile.get("industry", "N/A"),
-        "latest_price": f"{profile.get('current_price', 'N/A')}",
+        "latest_price": f"${float(profile.get('current_price', 0)):.2f}" if profile.get('current_price') else "N/A",
         "market_cap": format_market_cap(profile.get("market_cap", 0)),
         "timestamp": datetime.now().strftime("%Y-%m-%d"),
         "technical_analysis": technical_analysis,

@@ -182,7 +182,8 @@ def build_variables(artifacts_dir: Path) -> Dict[str, Any]:
         variables["company_name"] = profile.get("company_name", "")
         variables["sector"] = profile.get("sector", "")
         variables["industry"] = profile.get("industry", "")
-        variables["latest_price"] = profile.get("current_price", "N/A")
+        raw_price = profile.get("current_price")
+        variables["latest_price"] = f"${float(raw_price):.2f}" if raw_price else "N/A"
         variables["market_cap"] = format_market_cap(profile.get("market_cap"))
         variables["timestamp"] = profile.get("timestamp", "")
 

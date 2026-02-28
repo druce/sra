@@ -32,3 +32,12 @@
 - Large numbers: "$34.3 billion" not "$34,300,000,000"
 - Employee count from `profile.json`, formatted with comma separator
 - Fiscal year end for DHI: September 30
+
+## Number Formatting
+
+- **Stock prices**: Always format to nearest penny (2 decimal places), e.g., "$328.47" not "$328.4700012207031"
+- **Market capitalization**: Express in billions with 1 decimal, e.g., "$24.3B" or "$24.3 billion"; use trillions for >= $1T, e.g., "$3.45T"
+- **Revenue / earnings**: Use billions or millions as appropriate, e.g., "$4.7 billion", "$312 million"
+- **Percentages**: 1 decimal place for margins, growth rates, yields, e.g., "23.4%", not "23.4123%"
+- **Ratios (P/E, EV/EBITDA)**: 1 decimal place, e.g., "18.3x"
+- **Share counts**: Express in millions or billions, e.g., "1.2 billion shares outstanding"

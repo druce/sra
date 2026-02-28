@@ -148,6 +148,7 @@ def save_chart(symbol: str, work_dir: Path) -> bool:
                 f"{symbol} — Weekly",
                 "Volume & Relative Strength vs SPX",
             ),
+            specs=[[{"secondary_y": False}], [{"secondary_y": True}]],
         )
 
         # Candlestick
@@ -213,10 +214,10 @@ def save_chart(symbol: str, work_dir: Path) -> bool:
                     y=symbol_df["RS"],
                     line=dict(color="orange", width=1.5),
                     name="RS vs SPX",
-                    yaxis="y4",
                 ),
                 row=2,
                 col=1,
+                secondary_y=True,
             )
 
         # Layout
