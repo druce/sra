@@ -172,6 +172,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -240,6 +242,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -301,6 +305,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -362,6 +368,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -425,6 +433,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -488,6 +498,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -556,6 +568,8 @@ tasks:
         If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
 
         Save the revised section to ${rewrite_path}.
+      critic_model: claude-sonnet-4-6
+      rewrite_model: claude-sonnet-4-6
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
@@ -628,6 +642,8 @@ tasks:
     depends_on: [assemble_text]
     config:
       system: "You are a senior equity research editor with expertise in financial analysis and report quality."
+      model: claude-sonnet-4-6
+      max_budget_usd: 1.00
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       prompt: |
         Read the assembled report text at artifacts/report_body.md carefully and provide a detailed critique.
@@ -656,6 +672,8 @@ tasks:
     depends_on: [critique_body_final]
     config:
       system: "You are a senior equity research analyst revising a report based on editorial feedback."
+      model: claude-sonnet-4-6
+      max_budget_usd: 1.00
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       prompt: |
         Read the critique at artifacts/report_critique.md and the current report text at artifacts/report_body.md.

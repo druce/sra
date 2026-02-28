@@ -86,19 +86,24 @@ async def run_python_task(task: dict, workdir: Path, ticker: str) -> dict:
         parts = str(val).split()
         cmd.extend(parts)
 
-    stderr_log = workdir / f"{task['id']}_stderr.log"
+    stream_log = workdir / f"{task['id']}_stream.log"
 
     log(f"  [{task['id']}] Running: {' '.join(cmd)}")
+    log(f"  [{task['id']}] Streaming to: {stream_log}")
 
-    with open(stderr_log, "w") as err_f:
+    with open(stream_log, "w") as stream_f:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
-            stderr=err_f,
+            stderr=stream_f,
         )
         stdout_bytes, _ = await proc.communicate()
 
     stdout = stdout_bytes.decode().strip()
+
+    # Append stdout (JSON manifest) to stream log
+    with open(stream_log, "a") as stream_f:
+        stream_f.write(f"\n--- stdout (JSON manifest) ---\n{stdout}\n")
 
     # Parse JSON manifest from stdout
     try:
@@ -138,6 +143,7 @@ async def _invoke_claude(
     disallowed_tools: list[str] | None = None,
     system: str | None = None,
     model: str | None = None,
+    max_budget_usd: float | None = None,
     expected_outputs: dict[str, dict] | None = None,
 ) -> dict:
     """Invoke claude CLI with a prompt. Return result dict with status, error, artifacts."""
@@ -178,6 +184,9 @@ async def _invoke_claude(
     if model:
         cmd.extend(["--model", model])
 
+    if max_budget_usd is not None:
+        cmd.extend(["--max-budget-usd", str(max_budget_usd)])
+
     # Save prompt for debugging
     prompt_file = workdir / f"{task_id}_{step_label}_prompt.txt"
     prompt_file.write_text(full_prompt)
@@ -189,8 +198,13 @@ async def _invoke_claude(
     log(f"  [{task_id}] Running ({step_label}): {' '.join(cmd)}")
     log(f"  [{task_id}] Prompt file: {prompt_file}")
 
+    stream_log_path = workdir / f"{task_id}_stream.log"
     tools_log_path = workdir / "tools.log"
-    with open(stderr_log, "w") as err_f, open(tools_log_path, "a") as tools_log:
+    with (
+        open(stderr_log, "w") as err_f,
+        open(tools_log_path, "a") as tools_log,
+        open(stream_log_path, "a") as stream_log,
+    ):
         proc = await asyncio.create_subprocess_exec(
             *cmd,
             stdin=asyncio.subprocess.PIPE,
@@ -204,6 +218,10 @@ async def _invoke_claude(
         proc.stdin.write(full_prompt.encode())
         await proc.stdin.drain()
         proc.stdin.close()
+
+        stream_log.write(f"\n{'='*60}\n[{task_id}] step: {step_label}\n{'='*60}\n")
+        stream_log.flush()
+        log(f"  [{task_id}] Streaming to: {stream_log_path}")
 
         # Stream and parse JSON output
         try:
@@ -227,10 +245,14 @@ async def _invoke_claude(
                     for item in content:
                         item_type = item.get("type")
                         if item_type == "text":
-                            log(f"[{task_id}] text: {item['text']}")
+                            stream_log.write(item["text"] + "\n")
+                            stream_log.flush()
                         elif item_type == "thinking":
-                            log(f"[{task_id}] thinking: {item['thinking']}")
+                            stream_log.write(f"[thinking] {item['thinking']}\n")
+                            stream_log.flush()
                         elif item_type == "tool_use":
+                            stream_log.write(f"[tool_use] {item.get('name')} {json.dumps(item.get('input', {}), indent=2)}\n")
+                            stream_log.flush()
                             entry = {
                                 "event": "PreToolUse",
                                 "task": task_id,
@@ -243,6 +265,8 @@ async def _invoke_claude(
                             output = item.get("content", "")
                             if isinstance(output, str) and len(output) > 2000:
                                 output = output[:2000] + "...(truncated)"
+                            stream_log.write(f"[tool_result] {output}\n")
+                            stream_log.flush()
                             entry = {
                                 "event": "PostToolUse",
                                 "task": task_id,
@@ -307,6 +331,7 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
         disallowed_tools=params.get("disallowed_tools") or None,
         system=params.get("system"),
         model=params.get("model"),
+        max_budget_usd=params.get("max_budget_usd"),
         expected_outputs=outputs,
     )
 
@@ -358,7 +383,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                     step_label=f"critic_{i}",
                     disallowed_tools=params.get("critic_disallowed_tools") or None,
                     system=params.get("system"),
-                    model=params.get("model"),
+                    model=params.get("critic_model") or params.get("model"),
+                    max_budget_usd=params.get("max_budget_usd"),
                     expected_outputs=critic_outputs,
                 )
 
@@ -392,7 +418,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                     step_label=f"rewrite_{i}",
                     disallowed_tools=params.get("rewrite_disallowed_tools") or None,
                     system=params.get("system"),
-                    model=params.get("model"),
+                    model=params.get("rewrite_model") or params.get("model"),
+                    max_budget_usd=params.get("max_budget_usd"),
                     expected_outputs=rewrite_outputs,
                 )
 

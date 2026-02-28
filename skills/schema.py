@@ -83,6 +83,8 @@ class ClaudeConfig(BaseModel):
     critic_prompt: str | None = None
     rewrite_prompt: str | None = None
     n_iterations: int = 0
+    critic_model: str | None = None
+    rewrite_model: str | None = None
     critic_disallowed_tools: list[str] = []
     rewrite_disallowed_tools: list[str] = []
 
