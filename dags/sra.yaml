@@ -4,8 +4,10 @@ dag:
   inputs:
     ticker: "${ticker}"
     workdir: "${workdir}"
-  root_dir: /Users/drucev/projects/sra3
+  root_dir: /Users/drucev/projects/sra4
   template_dir: templates
+  data_dir: data # not implemented, in future write reports based on user-provided data
+  allowed_tools: all # not implemented, all allowed, in future limit tools
 
 tasks:
   # --- Data gathering tasks ---
@@ -112,9 +114,9 @@ tasks:
       risk:           {path: "artifacts/risk_analysis.md", format: md, description: "Risk factor analysis: regulatory, market, operational, financial, and strategic risks via Perplexity AI"}
       investment:     {path: "artifacts/investment_thesis.md", format: md, description: "Investment thesis: bull/bear cases, catalysts, valuation considerations, and recommendation framework via Perplexity AI"}
 
-  # --- Body writing tasks (Claude subagents) ---
-  write_body:
-    description: Write the main report body
+  # --- Body section writing tasks (Claude subagents, run in parallel) ---
+  write_profile:
+    description: "Write Section 2: Extended Profile"
     type: claude
     depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
     config:
@@ -129,68 +131,453 @@ tasks:
         - Gather additional market data and competitive intelligence
         - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
 
-        Perform deep research on ${ticker} using the collected information and anything you can find with tools. Search the web extensively, synthesize findings, and write a comprehensive report.
+        Write Section 2 of an equity research report on ${ticker}: Extended Profile.
 
-        Write a comprehensive report on ${ticker} in the straightforward factual style of a Wall Street equity research analyst, in 7 sections (will write 1st section later):
-
-        2. Extended Profile:
-          • History with origin story and key historical milestones
-          • Core business and competitors
-          • Recent major news
-
-        3. Business Model:
-          • Describe their core businesses, products and services.
-          • Outline their key revenue streams, customer segments, and monetization strategies.
-          • Analyze key characteristics of markets it operates in:
-            - customer acquisition costs
-            - retention metrics
-            - sales cycles
-            - seasonal or cyclical business patterns
-            - margins, market size, growth trajectory and factors affecting them
-          • Explain sources of competitive advantage such as network effects, switching costs, brands, intellectual property, regulatory moats, and other barriers to entry.
-
-        4. Competitive Landscape:
-            • Identify their main competitors, including direct, adjacent, and emerging competitors.
-            • Compare key metrics such as market share, product differentiation, pricing power, and growth trajectories.
-
-        5. Supply Chain Positioning:
-            • Describe their role in the upstream (supplier-side) and downstream (customer/distribution) parts of the supply chain.
-            • Identify key suppliers, partners, distributors, and any major dependencies or concentrations.
-
-        6. Financial and Operating Leverage:
-            • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings).
-            • Analyze operating leverage (fixed vs. variable cost structure, scalability, margin sensitivity to revenue changes).
-            • Analyze cash flow generation and working capital dynamics.
-            • Analyze capital allocation strategy (dividends, buybacks, reinvestment).
-
-        7. Valuation:
-            • Identify appropriate valuation methodologies, including income-based (e.g., DCF), asset-based (e.g. book value and sum of parts), market-based (e.g. peer multiples and comparisons), and LBO analysis
-            • Highlight important valuation inputs and metrics (growth rates, margins, discount rates, terminal value assumptions).
-            • Summarize current ratings and analyst opinions, including recent changes.
-            • Note the stock's volatility, liquidity, if it is widely covered and owned, if it is a hedge fund story stock or meme stock, what macro factors it is sensitive to
-
-        8. Recent developments, News Search and Risk Factors:
-            For this section, use your MCP tools to conduct deep research:
-            • Search for: ${ticker} + "analyst report" OR "research note" downgrade OR upgrade
-            • Use perplexity to search: "What are the most significant investigative reports and executive profiles about ${ticker} published in 2024-2025?"
-            • Look for: revenue trends, management changes, product launches, M&A, restructurings
-            • Investigate: short-seller reports, regulatory investigations, lawsuits
-            • Check for: product failures, supply chain disruptions
-            • Find: major wins, partnerships, large customer acquisitions
-            • Research: insider trading patterns and institutional ownership changes
-            • Consider: potential acquirers or acquisition targets
-            • Note any other key themes or trends that you think are important
+        Cover:
+        • History with origin story and key historical milestones
+        • Core business and competitors
+        • Recent major news
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_report_body.md
+        Save results in markdown format to artifacts/draft_section_2_profile.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_report_body.md", format: md, description: "Draft report body covering sections 2-8: extended profile, business model, competitive landscape, supply chain, financial leverage, valuation, and risk factors"}
+      section: {path: "artifacts/draft_section_2_profile.md", format: md, description: "Section 2: Extended profile covering company history, core business, competitors, and recent news"}
+
+  write_business_model:
+    description: "Write Section 3: Business Model"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 3 of an equity research report on ${ticker}: Business Model.
+
+        Cover:
+        • Describe their core businesses, products and services.
+        • Outline their key revenue streams, customer segments, and monetization strategies.
+        • Analyze key characteristics of markets it operates in:
+          - customer acquisition costs
+          - retention metrics
+          - sales cycles
+          - seasonal or cyclical business patterns
+          - margins, market size, growth trajectory and factors affecting them
+        • Explain sources of competitive advantage such as network effects, switching costs, brands, intellectual property, regulatory moats, and other barriers to entry.
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_3_business_model.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_3_business_model.md", format: md, description: "Section 3: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
+
+  write_competitive:
+    description: "Write Section 4: Competitive Landscape"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 4 of an equity research report on ${ticker}: Competitive Landscape.
+
+        Cover:
+        • Identify their main competitors, including direct, adjacent, and emerging competitors.
+        • Compare key metrics such as market share, product differentiation, pricing power, and growth trajectories.
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_4_competitive.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_4_competitive.md", format: md, description: "Section 4: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
+
+  write_supply_chain:
+    description: "Write Section 5: Supply Chain Positioning"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 5 of an equity research report on ${ticker}: Supply Chain Positioning.
+
+        Cover:
+        • Describe their role in the upstream (supplier-side) and downstream (customer/distribution) parts of the supply chain.
+        • Identify key suppliers, partners, distributors, and any major dependencies or concentrations.
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_5_supply_chain.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_5_supply_chain.md", format: md, description: "Section 5: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
+
+  write_financial:
+    description: "Write Section 6: Financial and Operating Leverage"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 6 of an equity research report on ${ticker}: Financial and Operating Leverage.
+
+        Cover:
+        • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings).
+        • Analyze operating leverage (fixed vs. variable cost structure, scalability, margin sensitivity to revenue changes).
+        • Analyze cash flow generation and working capital dynamics.
+        • Analyze capital allocation strategy (dividends, buybacks, reinvestment).
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_6_financial.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_6_financial.md", format: md, description: "Section 6: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
+
+  write_valuation:
+    description: "Write Section 7: Valuation"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 7 of an equity research report on ${ticker}: Valuation.
+
+        Cover:
+        • Identify appropriate valuation methodologies, including income-based (e.g., DCF), asset-based (e.g. book value and sum of parts), market-based (e.g. peer multiples and comparisons), and LBO analysis
+        • Highlight important valuation inputs and metrics (growth rates, margins, discount rates, terminal value assumptions).
+        • Summarize current ratings and analyst opinions, including recent changes.
+        • Note the stock's volatility, liquidity, if it is widely covered and owned, if it is a hedge fund story stock or meme stock, what macro factors it is sensitive to
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_7_valuation.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_7_valuation.md", format: md, description: "Section 7: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
+
+  write_risk_news:
+    description: "Write Section 8: Recent Developments, News Search and Risk Factors"
+    type: claude
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    config:
+      system: "You are a senior equity research analyst writing a professional report."
+      disallowed_tools: []
+      prompt: |
+        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
+
+        You also have access to powerful financial research tools through MCP servers. Use these tools to:
+        - Fill gaps in the provided research
+        - Find recent developments not covered in the report
+        - Gather additional market data and competitive intelligence
+        - The provided artifacts are up to date, you do not need to verify them unless there is contradictory information
+
+        Write Section 8 of an equity research report on ${ticker}: Recent Developments, News Search and Risk Factors.
+
+        For this section, use your MCP tools to conduct deep research:
+        • Search for: ${ticker} + "analyst report" OR "research note" downgrade OR upgrade
+        • Use perplexity to search: "What are the most significant investigative reports and executive profiles about ${ticker} published in 2024-2025?"
+        • Look for: revenue trends, management changes, product launches, M&A, restructurings
+        • Investigate: short-seller reports, regulatory investigations, lawsuits
+        • Check for: product failures, supply chain disruptions
+        • Find: major wins, partnerships, large customer acquisitions
+        • Research: insider trading patterns and institutional ownership changes
+        • Consider: potential acquirers or acquisition targets
+        • Note any other key themes or trends that you think are important
+
+        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+
+        Save results in markdown format to artifacts/draft_section_8_risk_news.md
+      n_iterations: 1
+      critic_prompt: |
+        Read the draft section at ${draft_path} carefully and critique it for an equity research report.
+
+        Evaluate for:
+        - Clarity and readability
+        - Factual accuracy — cross-check claims against data in artifacts/
+        - Missing or incomplete analysis
+        - Unsupported claims or speculation
+        - Repetition
+        - Professional tone and formatting
+
+        Write a numbered list of specific issues to address, ordered by importance.
+        For each issue, explain what's wrong and suggest how to fix it.
+
+        Save your critique to ${critique_path}.
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+
+        Address each issue identified in the critique:
+        - Improve clarity and readability
+        - Remove repetition
+        - Fix factual inaccuracies using data from artifacts/
+        - Elaborate on incomplete analysis using existing artifacts
+        - Remove or substantiate unsupported claims
+        - Ensure professional tone
+
+        Do not introduce new research. Use existing artifacts to resolve issues.
+        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+
+        Save the revised section to ${rewrite_path}.
+      critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+      rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
+    outputs:
+      section: {path: "artifacts/draft_section_8_risk_news.md", format: md, description: "Section 8: Recent developments, news, and risk factors from deep research"}
+
+  assemble_body:
+    description: Assemble the 7 body sections into a single draft report body
+    type: python
+    depends_on: [write_profile, write_business_model, write_competitive, write_supply_chain, write_financial, write_valuation, write_risk_news]
+    config:
+      script: skills/render_template.py
+      args:
+        template: templates/assemble_body.md.j2
+        output: "${workdir}/artifacts/draft_report_body.md"
+        file: "section_2=${workdir}/artifacts/draft_section_2_profile.md section_3=${workdir}/artifacts/draft_section_3_business_model.md section_4=${workdir}/artifacts/draft_section_4_competitive.md section_5=${workdir}/artifacts/draft_section_5_supply_chain.md section_6=${workdir}/artifacts/draft_section_6_financial.md section_7=${workdir}/artifacts/draft_section_7_valuation.md section_8=${workdir}/artifacts/draft_section_8_risk_news.md"
+    outputs:
+      body_text: {path: "artifacts/draft_report_body.md", format: md, description: "Assembled draft report body combining all 7 sections (2-8) into a single document"}
 
   write_conclusion:
     description: Write the main report conclusion
     type: claude
-    depends_on: [write_body]
+    depends_on: [assemble_body]
     config:
       system: "You are a senior equity research analyst writing a professional report."
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -208,7 +595,7 @@ tasks:
   write_intro:
     description: Write the main report intro
     type: claude
-    depends_on: [write_body, write_conclusion]
+    depends_on: [assemble_body, write_conclusion]
     config:
       system: "You are a senior equity research analyst writing a professional report."
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -224,7 +611,7 @@ tasks:
   assemble_text:
     description: Assemble the 3 text sections into a complete report
     type: python
-    depends_on: [write_intro, write_body, write_conclusion]
+    depends_on: [write_intro, assemble_body, write_conclusion]
     config:
       script: skills/render_template.py
       args:
