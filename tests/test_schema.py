@@ -187,6 +187,33 @@ def test_claude_config_missing_prompt():
         ClaudeConfig()
 
 
+def test_claude_config_critic_defaults():
+    """Critic-optimizer fields default to off."""
+    cfg = ClaudeConfig(prompt="Do it")
+    assert cfg.critic_prompt is None
+    assert cfg.rewrite_prompt is None
+    assert cfg.n_iterations == 0
+    assert cfg.critic_disallowed_tools == []
+    assert cfg.rewrite_disallowed_tools == []
+
+
+def test_claude_config_critic_fields():
+    """Critic-optimizer fields are accepted."""
+    cfg = ClaudeConfig(
+        prompt="Write section",
+        critic_prompt="Critique the draft at ${draft_path}",
+        rewrite_prompt="Rewrite based on ${critique_path}",
+        n_iterations=2,
+        critic_disallowed_tools=["yfinance"],
+        rewrite_disallowed_tools=["yfinance", "brave-search"],
+    )
+    assert cfg.critic_prompt == "Critique the draft at ${draft_path}"
+    assert cfg.rewrite_prompt == "Rewrite based on ${critique_path}"
+    assert cfg.n_iterations == 2
+    assert cfg.critic_disallowed_tools == ["yfinance"]
+    assert cfg.rewrite_disallowed_tools == ["yfinance", "brave-search"]
+
+
 def test_shell_config_valid():
     cfg = ShellConfig(command="pandoc input.md -o output.pdf")
     assert cfg.command == "pandoc input.md -o output.pdf"
@@ -492,7 +519,7 @@ def test_db_init_with_v2_yaml(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra3",
+        cwd="/Users/drucev/projects/sra4",
     )
     assert result.returncode == 0, f"stderr: {result.stderr}\nstdout: {result.stdout}"
     import json
@@ -516,7 +543,7 @@ def test_db_validate_command_valid():
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra3",
+        cwd="/Users/drucev/projects/sra4",
     )
     assert result.returncode == 0, f"stderr: {result.stderr}\nstdout: {result.stdout}"
     import json
@@ -545,6 +572,6 @@ tasks:
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra3",
+        cwd="/Users/drucev/projects/sra4",
     )
     assert result.returncode == 1

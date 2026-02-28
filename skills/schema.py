@@ -79,6 +79,13 @@ class ClaudeConfig(BaseModel):
     add_dirs: list[str] = []
     mcp_config: list[str] = []
 
+    # Critic-optimizer loop
+    critic_prompt: str | None = None
+    rewrite_prompt: str | None = None
+    n_iterations: int = 0
+    critic_disallowed_tools: list[str] = []
+    rewrite_disallowed_tools: list[str] = []
+
 
 class ShellConfig(BaseModel):
     """Config for type: shell — runs a shell command."""
