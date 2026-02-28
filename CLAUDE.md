@@ -22,10 +22,11 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 **DAG execution order** (driven by dependencies, not hardcoded stages):
 1. `profile` (no deps)
 2. `technical`, `fundamental`, `perplexity`, `fetch_edgar`, `wikipedia`, `perplexity_analysis` (depend on profile)
-3. `write_body` (depends on all data-gathering tasks)
-4. `write_conclusion` (depends on write_body), then `write_intro` (depends on both)
-5. `assemble_text` (depends on all writers)
-6. `critique_body_final` → `polish_body_final` → `final_assembly`
+3. `write_profile`, `write_business_model`, `write_competitive`, `write_supply_chain`, `write_financial`, `write_valuation`, `write_risk_news` (7 parallel section writers, depend on all data tasks)
+4. `assemble_body` (concatenates 7 sections into draft_report_body.md)
+5. `write_conclusion` (depends on assemble_body), then `write_intro` (depends on both)
+6. `assemble_text` (depends on all writers)
+7. `critique_body_final` → `polish_body_final` → `final_assembly`
 
 ## Key Files
 
@@ -76,21 +77,47 @@ uv add <package>
 ```
 
 ### Database CLI
+
+All flags are named (not positional). `--path` for `artifact-add` is relative to workdir.
+
 ```bash
 ./skills/db.py init --workdir work/SYMBOL_DATE --dag dags/sra.yaml --ticker SYMBOL
-./skills/db.py validate --dag dags/sra.yaml --ticker SYMBOL
+./skills/db.py validate --dag dags/sra.yaml [--ticker SYMBOL]
 ./skills/db.py task-ready --workdir work/SYMBOL_DATE
 ./skills/db.py task-get --workdir work/SYMBOL_DATE --task-id TASK_ID
-./skills/db.py task-update --workdir work/SYMBOL_DATE --task-id TASK_ID --status complete
-./skills/db.py artifact-add --workdir work/SYMBOL_DATE --task-id TASK_ID --name NAME --path PATH --format FORMAT
-./skills/db.py artifact-list --workdir work/SYMBOL_DATE
+./skills/db.py task-update --workdir work/SYMBOL_DATE --task-id TASK_ID --status STATUS [--summary TEXT] [--error TEXT]
+./skills/db.py task-context --workdir work/SYMBOL_DATE --task-id TASK_ID
+./skills/db.py artifact-add --workdir work/SYMBOL_DATE --task-id TASK_ID --name NAME --path PATH --format FORMAT [--description TEXT] [--source TEXT] [--summary TEXT]
+./skills/db.py artifact-list --workdir work/SYMBOL_DATE [--task TASK_ID]
 ./skills/db.py status --workdir work/SYMBOL_DATE
+./skills/db.py research-update --workdir work/SYMBOL_DATE --status STATUS
+./skills/db.py var-set --workdir work/SYMBOL_DATE --name NAME --value VALUE [--source-task TASK_ID]
+./skills/db.py var-get --workdir work/SYMBOL_DATE [--name NAME]
 ```
 
 ### Full pipeline
 ```bash
 ./research.py SYMBOL [--dag dags/sra.yaml] [--date YYYYMMDD]
 ```
+
+## Critic-Optimizer Loop & Drafts
+
+Writing tasks with `n_iterations > 0` run a critic-optimizer loop after the initial write:
+
+1. **Initial write** → `artifacts/{output}.md` (published artifact)
+2. **Copy to drafts** → `drafts/{output}_v0.md` (preserve original)
+3. **Critic** → `drafts/{output}_critic_1.md`
+4. **Rewrite** → `drafts/{output}_v1.md`
+5. **Publish** → copy `drafts/..._v1.md` back to `artifacts/{output}.md`
+
+With `n_iterations: 2`, repeat: `_critic_2.md`, `_v2.md`, then publish `_v2`.
+
+**Key rules:**
+- `artifacts/` always has exactly 1 copy of the latest version (clean)
+- `drafts/` has full iteration history (v0, critic_N, vN)
+- Only the primary artifact in `artifacts/` is registered in the DB
+- Draft files live on disk only (not in DB)
+- Downstream tasks always read from `artifacts/`
 
 ## Python Coding Conventions
 
