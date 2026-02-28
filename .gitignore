@@ -11,3 +11,27 @@ wheels/
 
 # Runtime output
 work/
+
+# Secrets and environment
+.env
+.env.*
+*.key
+*.pem
+*.p12
+credentials.json
+secrets.json
+
+# OS files
+.DS_Store
+
+# IDE / editor
+.vscode/
+.idea/
+
+# MCP config (may contain API keys)
+.mcp.json
+
+# Misc
+*.swp
+*~
+\#*\#
