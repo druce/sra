@@ -14,6 +14,7 @@ import argparse
 import asyncio
 import json
 import os
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -129,15 +130,24 @@ async def run_python_task(task: dict, workdir: Path, ticker: str) -> dict:
     }
 
 
-async def run_claude_task(task: dict, workdir: Path) -> dict:
-    """Run a claude task via claude CLI. Return result dict."""
-    params = task["params"]
+async def _invoke_claude(
+    prompt: str,
+    workdir: Path,
+    task_id: str,
+    step_label: str,
+    disallowed_tools: list[str] | None = None,
+    system: str | None = None,
+    model: str | None = None,
+    expected_outputs: dict[str, dict] | None = None,
+) -> dict:
+    """Invoke claude CLI with a prompt. Return result dict with status, error, artifacts."""
     abs_workdir = str(workdir.resolve())
+    outputs = expected_outputs or {}
 
     # Build prompt
     parts = []
-    if params.get("system"):
-        parts.append(params["system"])
+    if system:
+        parts.append(system)
         parts.append("")
 
     parts.append("All research data is in the artifacts/ subdirectory.")
@@ -146,40 +156,38 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
     parts.append("")
     parts.append("---")
     parts.append("")
-    parts.append(params["prompt"])
+    parts.append(prompt)
 
     # Add save instructions for each output
-    outputs = params.get("outputs", {})
     for out_name, out_def in outputs.items():
         out_path = out_def["path"]
-        if out_path not in params["prompt"]:
+        if out_path not in prompt:
             parts.append("")
             parts.append(f'Save your output for "{out_name}" to {out_path}')
 
-    prompt = "\n".join(parts)
+    full_prompt = "\n".join(parts)
 
     # Build claude command
     cmd = ["claude", "--dangerously-skip-permissions", "--verbose",
            "--output-format", "stream-json",
            "-d", abs_workdir, "-p"]
 
-    disallowed = params.get("disallowed_tools", [])
-    if disallowed:
-        cmd.extend(["--disallowedTools", ",".join(disallowed)])
+    if disallowed_tools:
+        cmd.extend(["--disallowedTools", ",".join(disallowed_tools)])
 
-    if params.get("model"):
-        cmd.extend(["--model", params["model"]])
+    if model:
+        cmd.extend(["--model", model])
 
     # Save prompt for debugging
-    prompt_file = workdir / f"{task['id']}_prompt.txt"
-    prompt_file.write_text(prompt)
+    prompt_file = workdir / f"{task_id}_{step_label}_prompt.txt"
+    prompt_file.write_text(full_prompt)
 
     # Clear CLAUDECODE env var to allow nested invocation
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
 
-    stderr_log = workdir / f"{task['id']}_stderr.log"
-    log(f"  [{task['id']}] Running: {' '.join(cmd)}")
-    log(f"  [{task['id']}] Prompt file: {prompt_file}")
+    stderr_log = workdir / f"{task_id}_{step_label}_stderr.log"
+    log(f"  [{task_id}] Running ({step_label}): {' '.join(cmd)}")
+    log(f"  [{task_id}] Prompt file: {prompt_file}")
 
     tools_log_path = workdir / "tools.log"
     with open(stderr_log, "w") as err_f, open(tools_log_path, "a") as tools_log:
@@ -193,7 +201,7 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
             limit=10 * 1024 * 1024,  # 10MB buffer for large JSON lines
         )
         # Write prompt to stdin and close
-        proc.stdin.write(prompt.encode())
+        proc.stdin.write(full_prompt.encode())
         await proc.stdin.drain()
         proc.stdin.close()
 
@@ -219,13 +227,13 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                     for item in content:
                         item_type = item.get("type")
                         if item_type == "text":
-                            log(f"[{task['id']}] text: {item['text']}", flush=True)
+                            log(f"[{task_id}] text: {item['text']}")
                         elif item_type == "thinking":
-                            log(f"[{task['id']}] thinking: {item['thinking']}", flush=True)
+                            log(f"[{task_id}] thinking: {item['thinking']}")
                         elif item_type == "tool_use":
                             entry = {
                                 "event": "PreToolUse",
-                                "task": task["id"],
+                                "task": task_id,
                                 "tool": item.get("name"),
                                 "input": item.get("input"),
                             }
@@ -237,7 +245,7 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                                 output = output[:2000] + "...(truncated)"
                             entry = {
                                 "event": "PostToolUse",
-                                "task": task["id"],
+                                "task": task_id,
                                 "tool_use_id": item.get("tool_use_id"),
                                 "output": output,
                             }
@@ -262,15 +270,13 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
 
     if missing:
         return {
-            "task_id": task["id"],
             "status": "failed",
             "error": f"Missing output files: {', '.join(missing)}",
             "artifacts": [],
-            "manifest": None,
         }
 
     if empty:
-        log(f"  [{task['id']}] Warning: empty output files: {', '.join(empty)}")
+        log(f"  [{task_id}] Warning: empty output files: {', '.join(empty)}")
 
     # Only include artifacts for files that exist and are non-empty
     artifacts = []
@@ -281,10 +287,140 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                 {"name": name, "path": odef["path"], "format": odef["format"]})
 
     return {
-        "task_id": task["id"],
         "status": "complete",
         "error": None,
         "artifacts": artifacts,
+    }
+
+
+async def run_claude_task(task: dict, workdir: Path) -> dict:
+    """Run a claude task via claude CLI. Return result dict."""
+    params = task["params"]
+    outputs = params.get("outputs", {})
+
+    # Step 1: Initial write
+    result = await _invoke_claude(
+        prompt=params["prompt"],
+        workdir=workdir,
+        task_id=task["id"],
+        step_label="write",
+        disallowed_tools=params.get("disallowed_tools") or None,
+        system=params.get("system"),
+        model=params.get("model"),
+        expected_outputs=outputs,
+    )
+
+    if result["status"] != "complete":
+        return {
+            "task_id": task["id"],
+            "status": "failed",
+            "error": result["error"],
+            "artifacts": result["artifacts"],
+            "manifest": None,
+        }
+
+    all_artifacts = list(result["artifacts"])
+
+    # Step 2: Critic-optimizer loop
+    n_iterations = params.get("n_iterations", 0)
+    critic_prompt_template = params.get("critic_prompt")
+    rewrite_prompt_template = params.get("rewrite_prompt")
+
+    if n_iterations > 0 and critic_prompt_template and rewrite_prompt_template:
+        # Determine primary output path (first output's path)
+        primary_output = next(iter(outputs.values())) if outputs else None
+        if primary_output:
+            primary_path = Path(primary_output["path"])
+            stem = primary_path.stem
+            suffix = primary_path.suffix
+            parent = str(primary_path.parent)
+            draft_path = primary_output["path"]
+
+            for i in range(1, n_iterations + 1):
+                log(f"  [{task['id']}] Critic-optimizer iteration {i}/{n_iterations}")
+
+                # --- Critic step ---
+                critique_path = f"{parent}/{stem}_critic_{i}{suffix}"
+                critic_prompt = (
+                    critic_prompt_template
+                    .replace("${draft_path}", draft_path)
+                    .replace("${critique_path}", critique_path)
+                )
+                critic_outputs = {
+                    f"critic_{i}": {"path": critique_path, "format": primary_output["format"]}
+                }
+
+                log(f"  [{task['id']}] Running critic {i}/{n_iterations}")
+                critic_result = await _invoke_claude(
+                    prompt=critic_prompt,
+                    workdir=workdir,
+                    task_id=task["id"],
+                    step_label=f"critic_{i}",
+                    disallowed_tools=params.get("critic_disallowed_tools") or None,
+                    system=params.get("system"),
+                    model=params.get("model"),
+                    expected_outputs=critic_outputs,
+                )
+
+                if critic_result["status"] != "complete":
+                    return {
+                        "task_id": task["id"],
+                        "status": "failed",
+                        "error": f"Critic iteration {i} failed: {critic_result['error']}",
+                        "artifacts": all_artifacts,
+                        "manifest": None,
+                    }
+                all_artifacts.extend(critic_result["artifacts"])
+
+                # --- Rewrite step ---
+                rewrite_path = f"{parent}/{stem}_v{i + 1}{suffix}"
+                rewrite_prompt = (
+                    rewrite_prompt_template
+                    .replace("${draft_path}", draft_path)
+                    .replace("${critique_path}", critique_path)
+                    .replace("${rewrite_path}", rewrite_path)
+                )
+                rewrite_outputs = {
+                    f"rewrite_{i}": {"path": rewrite_path, "format": primary_output["format"]}
+                }
+
+                log(f"  [{task['id']}] Running rewrite {i}/{n_iterations}")
+                rewrite_result = await _invoke_claude(
+                    prompt=rewrite_prompt,
+                    workdir=workdir,
+                    task_id=task["id"],
+                    step_label=f"rewrite_{i}",
+                    disallowed_tools=params.get("rewrite_disallowed_tools") or None,
+                    system=params.get("system"),
+                    model=params.get("model"),
+                    expected_outputs=rewrite_outputs,
+                )
+
+                if rewrite_result["status"] != "complete":
+                    return {
+                        "task_id": task["id"],
+                        "status": "failed",
+                        "error": f"Rewrite iteration {i} failed: {rewrite_result['error']}",
+                        "artifacts": all_artifacts,
+                        "manifest": None,
+                    }
+                all_artifacts.extend(rewrite_result["artifacts"])
+
+                # Copy rewrite to original output path for downstream compatibility
+                rewrite_file = workdir / rewrite_path
+                original_file = workdir / primary_output["path"]
+                if rewrite_file.exists():
+                    shutil.copy2(str(rewrite_file), str(original_file))
+                    log(f"  [{task['id']}] Copied {rewrite_path} -> {primary_output['path']}")
+
+                # Update draft_path for next iteration
+                draft_path = rewrite_path
+
+    return {
+        "task_id": task["id"],
+        "status": "complete",
+        "error": None,
+        "artifacts": all_artifacts,
         "manifest": None,
     }
 
@@ -324,7 +460,18 @@ async def process_results(results: list[dict], workdir: Path, tasks: list[dict])
 
             # Register artifacts (skip missing or empty files)
             for artifact in result["artifacts"]:
-                artifact_file = workdir / artifact["path"]
+                raw_path = Path(artifact["path"])
+                artifact_file = workdir / raw_path
+                # If workdir-relative path doesn't exist, check if the path
+                # is already relative to project root (e.g. render_template.py
+                # returns the full --output path like "work/SYM_DATE/artifacts/file.md")
+                if not artifact_file.exists() and raw_path.exists():
+                    artifact_file = raw_path
+                    # Normalize to workdir-relative for DB storage
+                    try:
+                        artifact["path"] = str(raw_path.relative_to(workdir))
+                    except ValueError:
+                        artifact["path"] = str(raw_path)
                 if not artifact_file.exists():
                     log(f"  [{task_id}] Skipping artifact '{artifact.get('name')}': file not found at {artifact['path']}")
                     continue
