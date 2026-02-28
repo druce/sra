@@ -6,9 +6,9 @@ Usage:
     ./skills/render_template.py --template templates/assemble_report.md.j2 \
         --output work/AMD_20260225/artifacts/report_body.md \
         --json work/AMD_20260225/artifacts/profile.json \
-        --file intro=work/AMD_20260225/artifacts/draft_intro.md \
-        --file body=work/AMD_20260225/artifacts/draft_report_body.md \
-        --file conclusion=work/AMD_20260225/artifacts/draft_report_conclusion.md
+        --file intro=work/AMD_20260225/artifacts/intro.md \
+        --file body=work/AMD_20260225/artifacts/assembled_body.md \
+        --file conclusion=work/AMD_20260225/artifacts/conclusion.md
 
 Exit codes:
     0  success

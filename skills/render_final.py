@@ -227,14 +227,14 @@ def build_variables(artifacts_dir: Path) -> Dict[str, Any]:
     variables["deep_research_output"] = (
         load_text(artifacts_dir / "report_body_final.md")
         or load_text(artifacts_dir / "report_body.md")
-        or load_text(artifacts_dir / "draft_report_body.md")
+        or load_text(artifacts_dir / "assembled_body.md")
     )
     if variables.get("deep_research_output"):
         variables["deep_research_output"] = strip_leading_header(
             variables["deep_research_output"]
         )
     variables["deep_conclusion"] = load_text(
-        artifacts_dir / "draft_report_conclusion.md"
+        artifacts_dir / "conclusion.md"
     )
 
     return variables

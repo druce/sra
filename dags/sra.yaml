@@ -143,7 +143,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_2_profile.md
+        Save results in markdown format to drafts/section_2_profile.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -182,7 +182,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_2_profile.md", format: md, description: "Section 2: Extended profile covering company history, core business, competitors, and recent news"}
+      section: {path: "artifacts/section_2_profile.md", format: md, description: "Section 2: Extended profile covering company history, core business, competitors, and recent news"}
 
   write_business_model:
     description: "Write Section 3: Business Model"
@@ -217,7 +217,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_3_business_model.md
+        Save results in markdown format to drafts/section_3_business_model.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -256,7 +256,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_3_business_model.md", format: md, description: "Section 3: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
+      section: {path: "artifacts/section_3_business_model.md", format: md, description: "Section 3: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
 
   write_competitive:
     description: "Write Section 4: Competitive Landscape"
@@ -284,7 +284,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_4_competitive.md
+        Save results in markdown format to drafts/section_4_competitive.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -323,7 +323,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_4_competitive.md", format: md, description: "Section 4: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
+      section: {path: "artifacts/section_4_competitive.md", format: md, description: "Section 4: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
 
   write_supply_chain:
     description: "Write Section 5: Supply Chain Positioning"
@@ -351,7 +351,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_5_supply_chain.md
+        Save results in markdown format to drafts/section_5_supply_chain.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -390,7 +390,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_5_supply_chain.md", format: md, description: "Section 5: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
+      section: {path: "artifacts/section_5_supply_chain.md", format: md, description: "Section 5: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
 
   write_financial:
     description: "Write Section 6: Financial and Operating Leverage"
@@ -420,7 +420,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_6_financial.md
+        Save results in markdown format to drafts/section_6_financial.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -459,7 +459,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_6_financial.md", format: md, description: "Section 6: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
+      section: {path: "artifacts/section_6_financial.md", format: md, description: "Section 6: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
 
   write_valuation:
     description: "Write Section 7: Valuation"
@@ -489,7 +489,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_7_valuation.md
+        Save results in markdown format to drafts/section_7_valuation.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -528,7 +528,7 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_7_valuation.md", format: md, description: "Section 7: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
+      section: {path: "artifacts/section_7_valuation.md", format: md, description: "Section 7: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
 
   write_risk_news:
     description: "Write Section 8: Recent Developments, News Search and Risk Factors"
@@ -563,7 +563,7 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_section_8_risk_news.md
+        Save results in markdown format to drafts/section_8_risk_news.md
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
@@ -602,20 +602,20 @@ tasks:
       critic_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/draft_section_8_risk_news.md", format: md, description: "Section 8: Recent developments, news, and risk factors from deep research"}
+      section: {path: "artifacts/section_8_risk_news.md", format: md, description: "Section 8: Recent developments, news, and risk factors from deep research"}
 
   assemble_body:
-    description: Assemble the 7 body sections into a single draft report body
+    description: Assemble the 7 body sections into a single report body
     type: python
     depends_on: [write_profile, write_business_model, write_competitive, write_supply_chain, write_financial, write_valuation, write_risk_news]
     config:
       script: skills/render_template.py
       args:
         template: templates/assemble_body.md.j2
-        output: "${workdir}/artifacts/draft_report_body.md"
-        file: "section_2=${workdir}/artifacts/draft_section_2_profile.md section_3=${workdir}/artifacts/draft_section_3_business_model.md section_4=${workdir}/artifacts/draft_section_4_competitive.md section_5=${workdir}/artifacts/draft_section_5_supply_chain.md section_6=${workdir}/artifacts/draft_section_6_financial.md section_7=${workdir}/artifacts/draft_section_7_valuation.md section_8=${workdir}/artifacts/draft_section_8_risk_news.md"
+        output: "${workdir}/artifacts/assembled_body.md"
+        file: "section_2=${workdir}/artifacts/section_2_profile.md section_3=${workdir}/artifacts/section_3_business_model.md section_4=${workdir}/artifacts/section_4_competitive.md section_5=${workdir}/artifacts/section_5_supply_chain.md section_6=${workdir}/artifacts/section_6_financial.md section_7=${workdir}/artifacts/section_7_valuation.md section_8=${workdir}/artifacts/section_8_risk_news.md"
     outputs:
-      body_text: {path: "artifacts/draft_report_body.md", format: md, description: "Assembled draft report body combining all 7 sections (2-8) into a single document"}
+      body_text: {path: "artifacts/assembled_body.md", format: md, description: "Assembled report body combining all 7 sections (2-8) into a single document"}
 
   write_conclusion:
     description: Write the main report conclusion
@@ -625,15 +625,15 @@ tasks:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       prompt: |
-        read the draft report body at artifacts/draft_report_body.md carefully and write a concluding 1-3 short paragraphs < 500 words total.
+        read the report body at artifacts/assembled_body.md carefully and write a concluding 1-3 short paragraphs < 500 words total.
             • Summarize the company's strategic position and the stock's investment risk/reward profile
             • Do not repeat at length but draw on the most salient points from the report body: SWOT, bull/bear cases, risk assessment, and monitoring watchpoints.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/draft_report_conclusion.md.
+        Save results in markdown format to artifacts/conclusion.md.
     outputs:
-      section: {path: "artifacts/draft_report_conclusion.md", format: md, description: "Report conclusion: SWOT analysis, bull/bear cases, risk assessment, and monitoring watchpoints"}
+      section: {path: "artifacts/conclusion.md", format: md, description: "Report conclusion: SWOT analysis, bull/bear cases, risk assessment, and monitoring watchpoints"}
 
   write_intro:
     description: Write the main report intro
@@ -643,13 +643,13 @@ tasks:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
       prompt: |
-        read the draft report body at artifacts/draft_report_body.md and the conclusion at artifacts/draft_report_conclusion.md carefully, then write a short introductory paragraph < 100 words.
+        read the report body at artifacts/assembled_body.md and the conclusion at artifacts/conclusion.md carefully, then write a short introductory paragraph < 100 words.
 
         Use a straightforward, factual tone throughout the analysis.
 
-        Save results in markdown format to artifacts/draft_intro.md.
+        Save results in markdown format to artifacts/intro.md.
     outputs:
-      section: {path: "artifacts/draft_intro.md", format: md, description: "Short introductory paragraph (<100 words) summarizing the report scope and key findings"}
+      section: {path: "artifacts/intro.md", format: md, description: "Short introductory paragraph (<100 words) summarizing the report scope and key findings"}
 
   assemble_text:
     description: Assemble the 3 text sections into a complete report
@@ -661,7 +661,7 @@ tasks:
         template: templates/assemble_report.md.j2
         output: "${workdir}/artifacts/report_body.md"
         json: "${workdir}/artifacts/profile.json"
-        file: "intro=${workdir}/artifacts/draft_intro.md body=${workdir}/artifacts/draft_report_body.md conclusion=${workdir}/artifacts/draft_report_conclusion.md"
+        file: "intro=${workdir}/artifacts/intro.md body=${workdir}/artifacts/assembled_body.md conclusion=${workdir}/artifacts/conclusion.md"
     outputs:
       body_text: {path: "artifacts/report_body.md", format: md, description: "Assembled full report: intro + body sections 2-8 + conclusion in final markdown format"}
 

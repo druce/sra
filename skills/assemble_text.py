@@ -24,9 +24,9 @@ def main() -> int:
     workdir = Path(args.workdir)
     artifacts = workdir / "artifacts"
 
-    intro_path = artifacts / "draft_intro.md"
-    body_path = artifacts / "draft_report_body.md"
-    conclusion_path = artifacts / "draft_report_conclusion.md"
+    intro_path = artifacts / "intro.md"
+    body_path = artifacts / "assembled_body.md"
+    conclusion_path = artifacts / "conclusion.md"
     output_path = artifacts / "report_body.md"
 
     sections = []
