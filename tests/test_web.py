@@ -60,6 +60,10 @@ tasks:
     type: python
     config:
       script: x.py
+  no_order_task:
+    type: python
+    config:
+      script: x.py
 """)
     order = load_sort_order(dag)
-    assert order == {"profile": 1, "technical": 2}
+    assert order == {"profile": 1, "technical": 2, "no_order_task": 999}

@@ -37,7 +37,7 @@ def load_sort_order(dag_path: Path) -> dict[str, int]:
     with open(dag_path) as f:
         dag = yaml.safe_load(f)
     tasks = dag.get("tasks", {})
-    return {task_id: cfg.get("sort_order", 999) for task_id, cfg in tasks.items()}
+    return {task_id: (cfg or {}).get("sort_order", 999) for task_id, cfg in tasks.items()}
 
 
 def list_reports(work_dir: Path) -> list[dict]:
