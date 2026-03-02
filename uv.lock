@@ -5611,6 +5611,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "claude-agent-sdk" },
     { name = "edgartools" },
+    { name = "fastapi" },
     { name = "finnhub-python" },
     { name = "ipykernel" },
     { name = "kaleido" },
@@ -5671,13 +5672,16 @@ dependencies = [
     { name = "streamlit" },
     { name = "ta-lib" },
     { name = "tiktoken" },
+    { name = "uvicorn" },
     { name = "weasyprint" },
+    { name = "websockets" },
     { name = "wikipedia" },
     { name = "wikipedia-api" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "pytest" },
 ]
 
@@ -5687,6 +5691,7 @@ requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.14.3" },
     { name = "claude-agent-sdk", specifier = ">=0.1.39" },
     { name = "edgartools", specifier = ">=5.16.3" },
+    { name = "fastapi", specifier = ">=0.128.8" },
     { name = "finnhub-python", specifier = ">=2.4.27" },
     { name = "ipykernel", specifier = ">=7.2.0" },
     { name = "kaleido", specifier = ">=1.2.0" },
@@ -5747,13 +5752,18 @@ requires-dist = [
     { name = "streamlit", specifier = ">=1.54.0" },
     { name = "ta-lib", specifier = ">=0.6.8" },
     { name = "tiktoken", specifier = ">=0.12.0" },
+    { name = "uvicorn", specifier = ">=0.40.0" },
     { name = "weasyprint", specifier = ">=68.1" },
+    { name = "websockets", specifier = ">=16.0" },
     { name = "wikipedia", specifier = ">=1.4.0" },
     { name = "wikipedia-api", specifier = ">=0.9.0" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+dev = [
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pytest", specifier = ">=9.0.2" },
+]
 
 [[package]]
 name = "sse-starlette"
