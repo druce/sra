@@ -67,3 +67,63 @@ tasks:
 """)
     order = load_sort_order(dag)
     assert order == {"profile": 1, "technical": 2, "no_order_task": 999}
+
+
+import pytest
+from httpx import AsyncClient, ASGITransport
+
+
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
+@pytest.mark.anyio
+async def test_reports_endpoint_empty(tmp_path, monkeypatch):
+    """GET /reports returns empty list when no completed runs."""
+    import web
+    monkeypatch.setattr(web, "WORK_DIR", tmp_path)
+    from web import app
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/reports")
+    assert resp.status_code == 200
+    assert resp.json() == []
+
+
+@pytest.mark.anyio
+async def test_reports_endpoint_finds_reports(tmp_path, monkeypatch):
+    """GET /reports returns completed runs."""
+    import web
+    monkeypatch.setattr(web, "WORK_DIR", tmp_path)
+    report = tmp_path / "ADSK_20260301" / "artifacts" / "final_report.md"
+    report.parent.mkdir(parents=True)
+    report.write_text("# Report")
+    from web import app
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/reports")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["ticker"] == "ADSK"
+
+
+@pytest.mark.anyio
+async def test_run_endpoint_rejects_empty_ticker(tmp_path, monkeypatch):
+    """POST /run with empty ticker returns 400."""
+    import web
+    monkeypatch.setattr(web, "WORK_DIR", tmp_path)
+    from web import app
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post("/run", json={"ticker": ""})
+    assert resp.status_code == 400
+
+
+@pytest.mark.anyio
+async def test_status_endpoint_not_found(tmp_path, monkeypatch):
+    """GET /status/{run_id} returns 404 when workdir does not exist."""
+    import web
+    monkeypatch.setattr(web, "WORK_DIR", tmp_path)
+    from web import app
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.get("/status/FAKE_20260101")
+    assert resp.status_code == 404

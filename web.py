@@ -71,6 +71,64 @@ def list_reports(work_dir: Path) -> list[dict]:
     return results
 
 
+@app.get("/reports")
+async def get_reports():
+    return list_reports(WORK_DIR)
+
+
+@app.post("/run")
+async def run_pipeline(body: dict):
+    ticker = body.get("ticker", "").strip().upper()
+    if not ticker:
+        return JSONResponse({"error": "ticker required"}, status_code=400)
+
+    date = datetime.now().strftime("%Y%m%d")
+    run_id = f"{ticker}_{date}"
+
+    proc = running.get(run_id)
+    if proc and proc.returncode is None:
+        return JSONResponse({"error": "already running"}, status_code=409)
+
+    proc = await asyncio.create_subprocess_exec(
+        sys.executable, str(ROOT / "research.py"), ticker, "--date", date,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    running[run_id] = proc
+    return {"run_id": run_id, "workdir": f"work/{run_id}"}
+
+
+@app.get("/status/{run_id}")
+async def get_status(run_id: str):
+    workdir = WORK_DIR / run_id
+    if not workdir.exists():
+        return JSONResponse({"error": "not found"}, status_code=404)
+
+    try:
+        result = subprocess.run(
+            [sys.executable, str(DB_PY), "status", "--workdir", str(workdir)],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            # Sort tasks by sort_order from DAG YAML
+            if "tasks" in data:
+                data["tasks"].sort(key=lambda t: _sort_order.get(t.get("task_id", ""), 999))
+            return data
+    except Exception:
+        pass
+    return JSONResponse({"error": "status unavailable"}, status_code=500)
+
+
+@app.post("/open/{run_id}")
+async def open_report(run_id: str):
+    report = WORK_DIR / run_id / "artifacts" / "final_report.md"
+    if not report.exists():
+        return JSONResponse({"error": "report not found"}, status_code=404)
+    subprocess.Popen(["open", "-a", "Typora", str(report)])
+    return {"ok": True}
+
+
 @app.on_event("startup")
 async def startup():
     global _sort_order
