@@ -149,4 +149,68 @@ async def index():
     return FileResponse(ROOT / "static" / "index.html")
 
 
+@app.websocket("/ws/{run_id}")
+async def websocket_log(ws: WebSocket, run_id: str):
+    await ws.accept()
+    workdir = WORK_DIR / run_id
+
+    # Wait up to 10s for workdir to appear (subprocess races with WS connect)
+    for _ in range(50):
+        if workdir.exists():
+            break
+        await asyncio.sleep(0.2)
+
+    if not workdir.exists():
+        await ws.send_json({"type": "error", "text": f"workdir not found: {run_id}"})
+        await ws.close()
+        return
+
+    offsets: dict[Path, int] = {}
+
+    async def drain():
+        """Read new bytes from all *_stream.log files and send to client."""
+        logs = sorted(workdir.glob("*_stream.log"))
+        for log_path in logs:
+            if log_path not in offsets:
+                offsets[log_path] = 0
+            try:
+                size = log_path.stat().st_size
+            except FileNotFoundError:
+                continue
+            if size > offsets[log_path]:
+                with open(log_path, "r", errors="replace") as f:
+                    f.seek(offsets[log_path])
+                    text = f.read()
+                    offsets[log_path] = f.tell()
+                if text.strip():
+                    task_name = log_path.stem.replace("_stream", "")
+                    await ws.send_json({"type": "log", "task": task_name, "text": text})
+
+    try:
+        while True:
+            await drain()
+
+            proc = running.get(run_id)
+            if proc and proc.returncode is not None:
+                # Final drain to catch any last bytes written before exit
+                await asyncio.sleep(0.3)
+                await drain()
+
+                report = workdir / "artifacts" / "final_report.md"
+                await ws.send_json({
+                    "type": "complete",
+                    "success": proc.returncode == 0,
+                    "report": str(report) if report.exists() else None,
+                })
+
+                if report.exists():
+                    subprocess.Popen(["open", "-a", "Typora", str(report)])
+                break
+
+            await asyncio.sleep(0.2)
+
+    except WebSocketDisconnect:
+        pass
+
+
 app.mount("/static", StaticFiles(directory=ROOT / "static"), name="static")
