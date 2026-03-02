@@ -1,604 +1,864 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SRA4 — Stock Research Agent</title>
-<style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #12121a;
-    --border: #1a1a2e;
-    --cyan: #00f0ff;
-    --magenta: #ff00aa;
-    --green: #00ff88;
-    --red: #ff3366;
-    --text: #e0e0e0;
-    --dim: #666680;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SRA4 — Stock Research Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+    :root {
+      --bg:          #07090f;
+      --surface:     #0c1220;
+      --surface-2:   #101928;
+      --surface-3:   #14203a;
+      --border:      #182030;
+      --border-mid:  #1e2d45;
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 24px 24px;
-  }
+      --cyan:        #00c8f0;
+      --cyan-bright: #40e0ff;
+      --cyan-dim:    rgba(0, 200, 240, 0.10);
+      --cyan-glow:   0 0 14px rgba(0, 200, 240, 0.45), 0 0 32px rgba(0, 200, 240, 0.12);
 
-  /* --- Header --- */
-  header {
-    text-align: center;
-    padding: 40px 0 24px;
-    width: 100%;
-  }
+      --green:       #00e87a;
+      --green-dim:   rgba(0, 232, 122, 0.10);
+      --green-glow:  0 0 10px rgba(0, 232, 122, 0.5);
 
-  header h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: var(--text);
-    text-shadow:
-      0 0 10px rgba(0, 240, 255, 0.3),
-      0 0 30px rgba(0, 240, 255, 0.1);
-  }
+      --amber:       #ffb340;
+      --amber-dim:   rgba(255, 179, 64, 0.10);
+      --amber-glow:  0 0 10px rgba(255, 179, 64, 0.5);
 
-  header h1 span {
-    color: var(--cyan);
-  }
+      --red:         #ff4060;
+      --red-dim:     rgba(255, 64, 96, 0.10);
+      --red-glow:    0 0 10px rgba(255, 64, 96, 0.5);
 
-  header .subtitle {
-    color: var(--dim);
-    font-size: 0.85rem;
-    margin-top: 6px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
+      --text:        #dde8f8;
+      --text-mid:    #6a88aa;
+      --text-dim:    #2e4060;
 
-  /* --- Input area --- */
-  .input-area {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 28px;
-    width: 100%;
-    max-width: 480px;
-  }
+      --sidebar-w:   210px;
+      --header-h:    50px;
 
-  #ticker-input {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    font-size: 1.1rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    padding: 12px 20px;
-    border-radius: 6px;
-    outline: none;
-    width: 240px;
-    text-transform: uppercase;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  #ticker-input::placeholder {
-    color: var(--dim);
-    font-weight: 400;
-    letter-spacing: 0.12em;
-  }
-
-  #ticker-input:focus {
-    border-color: var(--cyan);
-    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4), 0 0 30px rgba(0, 240, 255, 0.1);
-  }
-
-  #ticker-input:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  #run-btn {
-    background: var(--magenta);
-    color: #fff;
-    border: none;
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    padding: 12px 28px;
-    border-radius: 6px;
-    cursor: pointer;
-    text-transform: uppercase;
-    transition: box-shadow 0.2s, transform 0.1s, opacity 0.2s;
-  }
-
-  #run-btn:hover:not(:disabled) {
-    box-shadow: 0 0 14px rgba(255, 0, 170, 0.6), 0 0 40px rgba(255, 0, 170, 0.2);
-    transform: translateY(-1px);
-  }
-
-  #run-btn:active:not(:disabled) {
-    transform: translateY(0);
-  }
-
-  #run-btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
-
-  /* --- Status bar --- */
-  .status-bar {
-    width: 100%;
-    max-width: 960px;
-    margin-bottom: 8px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 24px;
-  }
-
-  .status-bar .info {
-    font-size: 0.8rem;
-    color: var(--dim);
-    letter-spacing: 0.04em;
-  }
-
-  .status-bar .info .val {
-    color: var(--cyan);
-    font-weight: 600;
-  }
-
-  .progress-track {
-    height: 3px;
-    width: 100%;
-    max-width: 960px;
-    background: var(--border);
-    border-radius: 2px;
-    margin-bottom: 20px;
-    overflow: hidden;
-  }
-
-  .progress-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--cyan), var(--green));
-    border-radius: 2px;
-    transition: width 0.4s ease;
-    box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
-  }
-
-  /* --- Task grid --- */
-  .task-grid-label {
-    width: 100%;
-    max-width: 960px;
-    font-size: 0.7rem;
-    color: var(--dim);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .task-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
-    max-width: 960px;
-    margin-bottom: 24px;
-    min-height: 36px;
-  }
-
-  .task-pill {
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-    transition: background 0.3s, box-shadow 0.3s, color 0.3s;
-  }
-
-  .task-pill[data-status="pending"] {
-    background: #2a2a3a;
-    color: var(--dim);
-  }
-
-  .task-pill[data-status="running"] {
-    background: rgba(0, 240, 255, 0.15);
-    color: var(--cyan);
-    box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
-    animation: pulse-glow 1.5s ease-in-out infinite;
-  }
-
-  .task-pill[data-status="complete"] {
-    background: rgba(0, 255, 136, 0.15);
-    color: var(--green);
-  }
-
-  .task-pill[data-status="failed"] {
-    background: rgba(255, 51, 102, 0.15);
-    color: var(--red);
-    box-shadow: 0 0 8px rgba(255, 51, 102, 0.3);
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+      --font-ui:     'Open Sans', sans-serif;
+      --font-mono:   'JetBrains Mono', monospace;
     }
-    50% {
-      box-shadow: 0 0 18px rgba(0, 240, 255, 0.6), 0 0 40px rgba(0, 240, 255, 0.15);
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      -webkit-font-smoothing: antialiased;
     }
-  }
 
-  /* --- Log area --- */
-  .log-label {
-    width: 100%;
-    max-width: 960px;
-    font-size: 0.7rem;
-    color: var(--dim);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
+    /* Dot-grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(0, 200, 240, 0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-  #log-output {
-    width: 100%;
-    max-width: 960px;
-    flex: 1;
-    min-height: 360px;
-    max-height: 520px;
-    overflow-y: auto;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 16px;
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
-    font-size: 0.82rem;
-    line-height: 1.55;
-    color: var(--green);
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
+    /* Ambient glow blobs */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 700px 500px at 10% 5%,  rgba(0, 200, 240, 0.04) 0%, transparent 65%),
+        radial-gradient(ellipse 500px 700px at 90% 90%, rgba(0, 232, 122, 0.03) 0%, transparent 65%);
+      pointer-events: none;
+      z-index: 0;
+    }
 
-  #log-output::-webkit-scrollbar {
-    width: 6px;
-  }
+    #app {
+      position: relative;
+      z-index: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-  #log-output::-webkit-scrollbar-track {
-    background: var(--bg);
-  }
+    /* ───── Header ───── */
+    .header {
+      height: var(--header-h);
+      background: var(--surface);
+      border-bottom: 1px solid var(--border-mid);
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      gap: 14px;
+      flex-shrink: 0;
+      position: relative;
+    }
 
-  #log-output::-webkit-scrollbar-thumb {
-    background: var(--border);
-    border-radius: 3px;
-  }
+    /* Cyan accent line under header */
+    .header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--cyan) 35%, var(--green) 65%, transparent 100%);
+      opacity: 0.25;
+    }
 
-  #log-output::-webkit-scrollbar-thumb:hover {
-    background: var(--dim);
-  }
+    .logo-diamond {
+      width: 26px;
+      height: 26px;
+      background: var(--cyan-dim);
+      border: 1.5px solid var(--cyan);
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--cyan-glow);
+      flex-shrink: 0;
+    }
+    .logo-diamond span {
+      transform: rotate(-45deg);
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--cyan);
+      letter-spacing: -0.03em;
+    }
 
-  .log-task-prefix {
-    color: var(--cyan);
-    font-weight: 600;
-  }
+    .logo-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
 
-  .log-system {
-    color: var(--dim);
-    font-style: italic;
-  }
+    .header-sep {
+      width: 1px;
+      height: 18px;
+      background: var(--border-mid);
+    }
 
-  .log-complete {
-    color: var(--green);
-    font-weight: 700;
-  }
+    .logo-sub {
+      font-size: 10px;
+      font-weight: 300;
+      color: var(--text-mid);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
 
-  .log-error {
-    color: var(--red);
-  }
+    /* Status bar */
+    .status-bar {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .status-ticker {
+      color: var(--cyan);
+      font-weight: 600;
+      letter-spacing: 0.1em;
+    }
+    .status-complete-label {
+      color: var(--green);
+      font-weight: 600;
+    }
+    .status-sep { color: var(--text-dim); }
+    .status-count {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--text-mid);
+    }
+    .sdot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .sdot.pending  { background: var(--text-dim); }
+    .sdot.running  { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+    .sdot.complete { background: var(--green);  box-shadow: 0 0 5px var(--green); }
+    .sdot.failed   { background: var(--red);    box-shadow: 0 0 5px var(--red); }
 
-  /* --- Tooltip for pills --- */
-  .task-pill[title] {
-    cursor: default;
-  }
-</style>
+    /* ───── Body ───── */
+    .body {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ───── Sidebar ───── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border-mid);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .sidebar-heading {
+      padding: 13px 14px 10px;
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .sidebar-heading::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 4px 0;
+    }
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    .report-row {
+      display: flex;
+      align-items: center;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: background 0.15s;
+      gap: 0;
+    }
+    .report-row:hover { background: var(--surface-3); }
+    .report-row:hover .report-sym { color: var(--cyan); }
+    .report-row:hover .report-arrow { opacity: 1; color: var(--cyan); }
+
+    .report-sym {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: 0.06em;
+      width: 52px;
+      transition: color 0.15s;
+    }
+    .report-date {
+      font-size: 10px;
+      color: var(--text-mid);
+      letter-spacing: 0.04em;
+      flex: 1;
+    }
+    .report-arrow {
+      font-size: 11px;
+      color: var(--text-dim);
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+    }
+
+    /* ───── Main ───── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Control bar */
+    .control-bar {
+      padding: 11px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .input-label {
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .ticker-input {
+      background: var(--bg);
+      border: 1px solid var(--border-mid);
+      color: var(--cyan);
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 7px 13px;
+      width: 108px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .ticker-input:focus {
+      border-color: var(--cyan);
+      box-shadow: var(--cyan-glow), inset 0 0 30px rgba(0, 200, 240, 0.02);
+    }
+    .ticker-input::placeholder { color: var(--text-dim); }
+    .ticker-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .run-btn {
+      position: relative;
+      overflow: hidden;
+      background: transparent;
+      border: 1.5px solid var(--cyan);
+      color: var(--cyan);
+      font-family: var(--font-ui);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 7px 20px;
+      cursor: pointer;
+      transition: color 0.2s, box-shadow 0.2s;
+    }
+    .run-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--cyan);
+      transform: translateX(-102%);
+      transition: transform 0.22s ease;
+    }
+    .run-btn:not(:disabled):hover { color: #07090f; box-shadow: var(--cyan-glow); }
+    .run-btn:not(:disabled):hover::before { transform: translateX(0); }
+    .run-btn span { position: relative; }
+    .run-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .run-btn.active {
+      border-color: var(--amber);
+      color: var(--amber);
+    }
+    .run-btn.active::before { display: none; }
+
+    .demo-btn {
+      background: transparent;
+      border: 1px solid var(--border-mid);
+      color: var(--text-mid);
+      font-family: var(--font-ui);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .demo-btn:hover { border-color: var(--text-mid); color: var(--text); }
+    .demo-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* Progress bar */
+    .progress-strip {
+      height: 36px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .progress-label {
+      font-size: 8.5px;
+      letter-spacing: 0.18em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      width: 68px;
+      flex-shrink: 0;
+    }
+    .progress-track {
+      flex: 1;
+      height: 2px;
+      background: var(--surface-3);
+      position: relative;
+      overflow: visible;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan) 0%, var(--green) 100%);
+      box-shadow: 0 0 8px var(--cyan);
+      transition: width 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .progress-fill::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: -3px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: white;
+      box-shadow: 0 0 8px var(--cyan), 0 0 16px var(--cyan-bright);
+    }
+    .progress-pct {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--cyan);
+      width: 38px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 0;
+    }
+    .content::-webkit-scrollbar { width: 4px; }
+    .content::-webkit-scrollbar-track { background: transparent; }
+    .content::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    /* Section labels */
+    .sec-label {
+      font-size: 8.5px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 9px;
+    }
+    .sec-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Task grid */
+    .task-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+      gap: 5px;
+    }
+
+    .task-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .task-pill.complete {
+      background: var(--green-dim);
+      border-color: rgba(0, 232, 122, 0.22);
+    }
+    .task-pill.running {
+      background: var(--amber-dim);
+      border-color: rgba(255, 179, 64, 0.28);
+    }
+    .task-pill.failed {
+      background: var(--red-dim);
+      border-color: rgba(255, 64, 96, 0.28);
+    }
+    .task-pill.pending { opacity: 0.45; }
+
+    /* Shimmer on running */
+    .task-pill.running::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 179, 64, 0.06) 50%, transparent 100%);
+      animation: shimmer 1.8s linear infinite;
+    }
+    @keyframes shimmer { from { transform: translateX(-100%); } to { transform: translateX(200%); } }
+
+    .tdot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s, box-shadow 0.3s;
+    }
+    .task-pill.pending  .tdot { background: var(--text-dim); }
+    .task-pill.running  .tdot { background: var(--amber); box-shadow: var(--amber-glow); animation: pulse 1.1s ease-in-out infinite; }
+    .task-pill.complete .tdot { background: var(--green); box-shadow: var(--green-glow); }
+    .task-pill.failed   .tdot { background: var(--red);   box-shadow: var(--red-glow); }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.45; transform:scale(0.65); } }
+
+    .tname {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text-mid);
+      transition: color 0.3s;
+      position: relative;
+    }
+    .task-pill.pending  .tname { color: var(--text-dim); }
+    .task-pill.running  .tname { color: var(--amber); }
+    .task-pill.complete .tname { color: var(--green); }
+    .task-pill.failed   .tname { color: var(--red); }
+
+    /* Log output */
+    .log-wrap {
+      flex: 1;
+      min-height: 180px;
+    }
+
+    .log-output {
+      height: 100%;
+      min-height: 180px;
+      max-height: 340px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 12px 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.75;
+      color: var(--text-mid);
+      overflow-y: auto;
+    }
+    .log-output::-webkit-scrollbar { width: 3px; }
+    .log-output::-webkit-scrollbar-track { background: transparent; }
+    .log-output::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 2px; }
+
+    .log-line { display: block; }
+    .lt  { color: var(--cyan); font-weight: 500; }
+    .lok { color: var(--green); }
+    .lwn { color: var(--amber); }
+    .ler { color: var(--red); }
+    .ldm { color: var(--text-dim); }
+    .cursor { animation: blink 1s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
 </head>
+
 <body>
+<div id="app" x-data="sra4()" x-init="init()">
 
-<header>
-  <h1><span>SRA4</span> — Stock Research Agent</h1>
-  <div class="subtitle">Equity Research Pipeline</div>
-</header>
+  <!-- ───── Header ───── -->
+  <header class="header">
+    <div class="logo-diamond"><span>S4</span></div>
+    <span class="logo-text">SRA4</span>
+    <div class="header-sep"></div>
+    <span class="logo-sub">Stock Research Agent</span>
 
-<div class="input-area">
-  <input type="text" id="ticker-input" placeholder="TICKER" spellcheck="false" autocomplete="off">
-  <button id="run-btn">Run</button>
-</div>
+    <div class="status-bar" x-show="running || completed" x-cloak>
+      <template x-if="running">
+        <span class="status-ticker" x-text="ticker"></span>
+      </template>
+      <template x-if="completed">
+        <span class="status-complete-label" x-text="ticker + ' — Complete'"></span>
+      </template>
+      <template x-if="running">
+        <span class="status-sep">&mdash;</span>
+      </template>
+      <template x-if="running">
+        <div class="status-count">
+          <div class="sdot pending"></div>
+          <span x-text="counts.pending"></span>
+        </div>
+      </template>
+      <template x-if="running">
+        <div class="status-count" style="color:var(--amber)">
+          <div class="sdot running"></div>
+          <span x-text="counts.running"></span>
+        </div>
+      </template>
+      <template x-if="running">
+        <div class="status-count" style="color:var(--green)">
+          <div class="sdot complete"></div>
+          <span x-text="counts.complete"></span>
+        </div>
+      </template>
+      <template x-if="running">
+        <div class="status-count" style="color:var(--red)">
+          <div class="sdot failed"></div>
+          <span x-text="counts.failed"></span>
+        </div>
+      </template>
+    </div>
+  </header>
 
-<div class="status-bar">
-  <span class="info" id="status-info"></span>
-  <span class="info" id="status-counts"></span>
-</div>
-<div class="progress-track">
-  <div class="progress-fill" id="progress-fill"></div>
-</div>
+  <!-- ───── Body ───── -->
+  <div class="body">
 
-<div class="task-grid-label" id="task-grid-label"></div>
-<div class="task-grid" id="task-grid"></div>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-heading">Past Reports</div>
+      <div class="sidebar-scroll">
+        <template x-for="r in reports" :key="r.id">
+          <div class="report-row" @click="openReport(r)">
+            <span class="report-sym" x-text="r.sym"></span>
+            <span class="report-date" x-text="r.date"></span>
+            <span class="report-arrow">↗</span>
+          </div>
+        </template>
+      </div>
+    </aside>
 
-<div class="log-label">Output</div>
-<div id="log-output"></div>
+    <!-- Main panel -->
+    <div class="main">
+
+      <!-- Control bar -->
+      <div class="control-bar">
+        <span class="input-label">Ticker</span>
+        <input class="ticker-input"
+          type="text"
+          placeholder="AAPL"
+          x-model="tickerInput"
+          @keyup.enter="launch"
+          :disabled="running">
+        <button class="run-btn" :class="{ active: running }" @click="launch" :disabled="running">
+          <span x-text="running ? '● Running' : '▶ Run'"></span>
+        </button>
+        <button class="demo-btn" @click="tickerInput='ADSK'; launch()" :disabled="running" x-show="!running">
+          Demo
+        </button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="progress-strip" x-show="running || completed" x-cloak>
+        <span class="progress-label" x-text="completed ? 'Complete' : 'Progress'"></span>
+        <div class="progress-track">
+          <div class="progress-fill" :style="`width:${pct}%`"></div>
+        </div>
+        <span class="progress-pct" x-text="pct + '%'"></span>
+      </div>
+
+      <!-- Content -->
+      <div class="content">
+
+        <!-- Task grid -->
+        <div>
+          <div class="sec-label">Tasks</div>
+          <div class="task-grid">
+            <template x-for="t in tasks" :key="t.id">
+              <div class="task-pill" :class="t.state">
+                <div class="tdot"></div>
+                <span class="tname" x-text="t.id"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="log-wrap">
+          <div class="sec-label">Output</div>
+          <div class="log-output" id="logbox">
+            <template x-for="(ln, i) in logs" :key="i">
+              <span class="log-line" x-html="ln"></span>
+            </template>
+            <span class="cursor" x-show="running">_</span>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /body -->
+
+</div><!-- /app -->
 
 <script>
-(function() {
-  'use strict';
+function sra4() {
+  return {
+    tickerInput: '',
+    ticker: '',
+    running: false,
+    completed: false,
+    pct: 0,
+    tasks: [],
+    logs: [],
+    reports: [],
+    ws: null,
+    pollTimer: null,
 
-  const tickerInput = document.getElementById('ticker-input');
-  const runBtn = document.getElementById('run-btn');
-  const taskGrid = document.getElementById('task-grid');
-  const taskGridLabel = document.getElementById('task-grid-label');
-  const logOutput = document.getElementById('log-output');
-  const statusInfo = document.getElementById('status-info');
-  const statusCounts = document.getElementById('status-counts');
-  const progressFill = document.getElementById('progress-fill');
+    async init() {
+      await this.loadReports();
+    },
 
-  let ws = null;
-  let pollInterval = null;
-  let currentRunId = null;
-  let userScrolled = false;
-
-  // Track whether the user has scrolled away from the bottom
-  logOutput.addEventListener('scroll', function() {
-    const threshold = 40;
-    const atBottom = (logOutput.scrollHeight - logOutput.scrollTop - logOutput.clientHeight) < threshold;
-    userScrolled = !atBottom;
-  });
-
-  function autoScroll() {
-    if (!userScrolled) {
-      logOutput.scrollTop = logOutput.scrollHeight;
-    }
-  }
-
-  function appendLog(html) {
-    logOutput.insertAdjacentHTML('beforeend', html);
-    autoScroll();
-  }
-
-  function appendSystemLog(text) {
-    appendLog('<span class="log-system">' + escapeHtml(text) + '</span>\n');
-  }
-
-  function appendCompleteLog(text) {
-    appendLog('<span class="log-complete">' + escapeHtml(text) + '</span>\n');
-  }
-
-  function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-  }
-
-  function setRunning(state) {
-    tickerInput.disabled = state;
-    runBtn.disabled = state;
-  }
-
-  function clearUI() {
-    taskGrid.innerHTML = '';
-    taskGridLabel.textContent = '';
-    logOutput.innerHTML = '';
-    statusInfo.innerHTML = '';
-    statusCounts.innerHTML = '';
-    progressFill.style.width = '0%';
-    userScrolled = false;
-  }
-
-  // --- Task pill rendering ---
-  function renderTasks(taskDetails) {
-    if (!taskDetails || taskDetails.length === 0) return;
-
-    taskGridLabel.textContent = 'Tasks';
-
-    // Build a map of current pills for efficient update
-    const existingPills = {};
-    taskGrid.querySelectorAll('.task-pill').forEach(function(pill) {
-      existingPills[pill.dataset.id] = pill;
-    });
-
-    taskDetails.forEach(function(task) {
-      let pill = existingPills[task.id];
-      if (!pill) {
-        pill = document.createElement('div');
-        pill.className = 'task-pill';
-        pill.dataset.id = task.id;
-        pill.textContent = task.id;
-        taskGrid.appendChild(pill);
-      }
-      if (pill.dataset.status !== task.status) {
-        pill.dataset.status = task.status;
-      }
-      // Tooltip
-      let tip = task.id + ' — ' + task.status;
-      if (task.summary) tip += '\n' + task.summary;
-      if (task.error) tip += '\nError: ' + task.error;
-      pill.title = tip;
-    });
-  }
-
-  function updateProgress(tasks) {
-    if (!tasks || !tasks.total) return;
-    const done = (tasks.complete || 0) + (tasks.failed || 0) + (tasks.skipped || 0);
-    const pct = Math.round((done / tasks.total) * 100);
-    progressFill.style.width = pct + '%';
-
-    statusCounts.innerHTML =
-      '<span class="val">' + (tasks.complete || 0) + '</span> complete' +
-      '  ·  ' +
-      '<span class="val">' + (tasks.running || 0) + '</span> running' +
-      '  ·  ' +
-      '<span class="val">' + (tasks.pending || 0) + '</span> pending' +
-      (tasks.failed ? '  ·  <span style="color:var(--red)">' + tasks.failed + ' failed</span>' : '');
-  }
-
-  // --- Status polling ---
-  function startPolling(runId) {
-    stopPolling();
-    pollInterval = setInterval(function() {
-      fetch('/status/' + runId)
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data.error) return;
-          if (data.task_details) {
-            renderTasks(data.task_details);
-          }
-          if (data.tasks) {
-            updateProgress(data.tasks);
-          }
-          if (data.research) {
-            statusInfo.innerHTML = '<span class="val">' + escapeHtml(data.research.ticker) + '</span> — ' + data.research.status;
-          }
-        })
-        .catch(function() { /* status poll failure is non-fatal */ });
-    }, 2000);
-  }
-
-  function stopPolling() {
-    if (pollInterval) {
-      clearInterval(pollInterval);
-      pollInterval = null;
-    }
-  }
-
-  // --- WebSocket ---
-  function connectWebSocket(runId) {
-    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = protocol + '//' + location.host + '/ws/' + runId;
-    ws = new WebSocket(wsUrl);
-
-    ws.onopen = function() {
-      appendSystemLog('Connected to pipeline stream...');
-    };
-
-    ws.onmessage = function(event) {
-      let msg;
+    async loadReports() {
       try {
-        msg = JSON.parse(event.data);
+        const resp = await fetch('/reports');
+        this.reports = await resp.json();
       } catch (e) {
-        appendLog(escapeHtml(event.data) + '\n');
+        console.error('Failed to load reports', e);
+      }
+    },
+
+    log(html) {
+      this.logs.push(html);
+      this.$nextTick(() => {
+        const el = document.getElementById('logbox');
+        if (el) el.scrollTop = el.scrollHeight;
+      });
+    },
+
+    flashError() {
+      const el = document.querySelector('.ticker-input');
+      if (!el) return;
+      el.style.borderColor = 'var(--red)';
+      el.style.boxShadow = '0 0 10px rgba(255,64,96,0.4)';
+      setTimeout(() => {
+        el.style.borderColor = '';
+        el.style.boxShadow = '';
+      }, 800);
+    },
+
+    async launch() {
+      const sym = this.tickerInput.trim().toUpperCase();
+      if (!sym) { this.flashError(); return; }
+      if (this.running) return;
+
+      this.ticker = sym;
+      this.running = true;
+      this.completed = false;
+      this.pct = 0;
+      this.logs = [];
+      this.tasks = [];
+
+      let run_id;
+      try {
+        const resp = await fetch('/run', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ticker: sym}),
+        });
+        if (resp.status === 409) {
+          this.log('<span class="lwn">⚠ Already running — wait for current run to complete</span>');
+          this.running = false;
+          return;
+        }
+        if (!resp.ok) {
+          this.log(`<span class="ler">✗ Error starting run: ${resp.status}</span>`);
+          this.running = false;
+          return;
+        }
+        const data = await resp.json();
+        run_id = data.run_id;
+      } catch (e) {
+        this.log(`<span class="ler">✗ Network error: ${e.message}</span>`);
+        this.running = false;
         return;
       }
 
-      if (msg.type === 'log') {
-        const prefix = '<span class="log-task-prefix">[' + escapeHtml(msg.task) + ']</span> ';
-        // Split text into lines and prefix each with task name
-        const lines = msg.text.replace(/\n$/, '').split('\n');
-        lines.forEach(function(line) {
-          appendLog(prefix + escapeHtml(line) + '\n');
-        });
-      } else if (msg.type === 'complete') {
-        appendCompleteLog('Pipeline complete.');
-        if (msg.report) {
-          appendLog('<span class="log-complete">Report: ' + escapeHtml(msg.report) + '</span>\n');
-        }
-        onPipelineFinished();
+      this.connectWS(run_id);
+      this.startPoll(run_id);
+    },
+
+    connectWS(run_id, retry = false) {
+      if (retry) {
+        this.log('<span class="lwn">⚠ Reconnecting log stream...</span>');
       }
-    };
+      const ws = new WebSocket(`ws://${location.host}/ws/${run_id}`);
+      this.ws = ws;
 
-    ws.onerror = function() {
-      appendLog('<span class="log-error">WebSocket error</span>\n');
-    };
-
-    ws.onclose = function() {
-      appendSystemLog('Stream disconnected.');
-    };
-  }
-
-  function onPipelineFinished() {
-    stopPolling();
-    setRunning(false);
-    // Do one final status poll
-    if (currentRunId) {
-      fetch('/status/' + currentRunId)
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-          if (data.task_details) renderTasks(data.task_details);
-          if (data.tasks) updateProgress(data.tasks);
-          if (data.research) {
-            statusInfo.innerHTML = '<span class="val">' + escapeHtml(data.research.ticker) + '</span> — ' + data.research.status;
-          }
-        })
-        .catch(function() {});
-    }
-  }
-
-  // --- Run pipeline ---
-  function run() {
-    const ticker = tickerInput.value.trim().toUpperCase();
-    if (!ticker) {
-      tickerInput.focus();
-      return;
-    }
-
-    tickerInput.value = ticker;
-    clearUI();
-    setRunning(true);
-    appendSystemLog('Starting pipeline for ' + ticker + '...');
-
-    fetch('/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker: ticker }),
-    })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.error) {
-          appendLog('<span class="log-error">Error: ' + escapeHtml(data.error) + '</span>\n');
-          setRunning(false);
-          return;
+      ws.onmessage = (evt) => {
+        const msg = JSON.parse(evt.data);
+        if (msg.type === 'log') {
+          const task = msg.task.replace(/</g, '&lt;');
+          const text = msg.text.replace(/\n/g, '<br>');
+          this.log(`<span class="lt">[${task}]</span> ${text}`);
+        } else if (msg.type === 'complete') {
+          this.stopPoll();
+          this.running = false;
+          this.completed = true;
+          this.pct = 100;
+          this.log(msg.success
+            ? '<span class="lok">✓ Research complete · Opening in Typora</span>'
+            : '<span class="ler">✗ Research failed — check logs</span>'
+          );
+          this.loadReports();
+        } else if (msg.type === 'error') {
+          this.log(`<span class="ler">✗ ${msg.text}</span>`);
+          this.stopPoll();
+          this.running = false;
         }
+      };
 
-        currentRunId = data.run_id;
-        statusInfo.innerHTML = '<span class="val">' + escapeHtml(ticker) + '</span> — initializing';
-        appendSystemLog('Run ID: ' + data.run_id);
+      ws.onerror = () => {
+        if (this.running) {
+          setTimeout(() => this.connectWS(run_id, true), 1000);
+        }
+      };
 
-        connectWebSocket(data.run_id);
-        startPolling(data.run_id);
-      })
-      .catch(function(err) {
-        appendLog('<span class="log-error">Request failed: ' + escapeHtml(String(err)) + '</span>\n');
-        setRunning(false);
-      });
-  }
+      ws.onclose = () => {
+        if (this.running) {
+          setTimeout(() => this.connectWS(run_id, true), 1000);
+        }
+      };
+    },
 
-  // --- Event listeners ---
-  runBtn.addEventListener('click', run);
+    startPoll(run_id) {
+      this.pollTimer = setInterval(async () => {
+        try {
+          const resp = await fetch(`/status/${run_id}`);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (data.tasks) {
+            this.tasks = data.tasks.map(t => ({
+              id: t.task_id,
+              state: t.status === 'complete' ? 'complete'
+                   : t.status === 'running'  ? 'running'
+                   : t.status === 'failed'   ? 'failed'
+                   : 'pending',
+            }));
+            const total = this.tasks.length;
+            const done  = this.tasks.filter(t => t.state === 'complete').length;
+            if (total > 0) this.pct = Math.min(99, Math.round((done / total) * 100));
+          }
+        } catch (e) {
+          // swallow transient poll errors
+        }
+      }, 2000);
+    },
 
-  tickerInput.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      run();
-    }
-  });
+    stopPoll() {
+      if (this.pollTimer) {
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+      }
+    },
 
-  // Auto-uppercase as user types
-  tickerInput.addEventListener('input', function() {
-    const pos = tickerInput.selectionStart;
-    tickerInput.value = tickerInput.value.toUpperCase();
-    tickerInput.selectionStart = pos;
-    tickerInput.selectionEnd = pos;
-  });
+    openReport(r) {
+      fetch(`/open/${r.run_id}`, {method: 'POST'}).catch(() => {});
+    },
 
-  // Focus input on load
-  tickerInput.focus();
-})();
+    get counts() {
+      return {
+        pending:  this.tasks.filter(t => t.state === 'pending').length,
+        running:  this.tasks.filter(t => t.state === 'running').length,
+        complete: this.tasks.filter(t => t.state === 'complete').length,
+        failed:   this.tasks.filter(t => t.state === 'failed').length,
+      };
+    },
+  };
+}
 </script>
-
 </body>
 </html>
