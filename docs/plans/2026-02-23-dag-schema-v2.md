@@ -20,7 +20,7 @@
 
 **Step 1: Add pytest as dev dependency**
 
-Run: `cd /Users/drucev/projects/sra4 && uv add --dev pytest`
+Run: `cd /Users/drucev/projects/sra5 && uv add --dev pytest`
 
 **Step 2: Create test directory and files**
 
@@ -48,7 +48,7 @@ def test_placeholder():
 
 **Step 3: Verify pytest runs**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/ -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/ -v`
 Expected: 1 test collected, PASS
 
 **Step 4: Commit**
@@ -123,7 +123,7 @@ def test_dag_header_defaults():
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: FAIL — `ModuleNotFoundError: No module named 'schema'`
 
 **Step 3: Implement OutputDef and DagHeader**
@@ -162,7 +162,7 @@ class DagHeader(BaseModel):
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**
@@ -260,7 +260,7 @@ def test_openai_config_valid():
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v -x`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v -x`
 Expected: FAIL — `ImportError`
 
 **Step 3: Implement config models**
@@ -305,7 +305,7 @@ class OpenAIConfig(BaseModel):
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**
@@ -425,7 +425,7 @@ def test_dagfile_version_1_rejected():
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v -x`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v -x`
 Expected: FAIL — `ImportError: cannot import name 'Task'`
 
 **Step 3: Implement Task and DagFile models**
@@ -491,7 +491,7 @@ Note: The `Task` type alias uses Pydantic v2's `Discriminator` on the `type` fie
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**
@@ -592,7 +592,7 @@ def test_validate_dag_duplicate_output_paths():
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_validate_dag_valid -v -x`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_validate_dag_valid -v -x`
 Expected: FAIL — `ImportError: cannot import name 'validate_dag'`
 
 **Step 3: Implement validate_dag function**
@@ -681,7 +681,7 @@ def validate_dag(raw: dict) -> DagFile:
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**
@@ -744,7 +744,7 @@ def test_load_dag_substitutes_in_prompt():
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_load_dag_substitutes_variables -v -x`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_load_dag_substitutes_variables -v -x`
 Expected: FAIL — `ImportError: cannot import name 'load_dag'`
 
 **Step 3: Implement load_dag**
@@ -791,7 +791,7 @@ def load_dag(raw: dict, variables: dict | None = None) -> DagFile:
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**
@@ -850,7 +850,7 @@ def test_sra_yaml_validates():
     assert len(dag.tasks) > 0
 ```
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_sra_yaml_validates -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_sra_yaml_validates -v`
 Expected: PASS
 
 **Step 3: Commit**
@@ -888,7 +888,7 @@ def test_db_init_with_v2_yaml(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra4",
+        cwd="/Users/drucev/projects/sra5",
     )
     assert result.returncode == 0, f"stderr: {result.stderr}\nstdout: {result.stdout}"
     import json
@@ -899,7 +899,7 @@ def test_db_init_with_v2_yaml(tmp_path):
 
 **Step 2: Run test (it should pass with current db.py since YAML is valid, but we want to confirm baseline)**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_db_init_with_v2_yaml -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_db_init_with_v2_yaml -v`
 
 **Step 3: Refactor cmd_init to use schema validation**
 
@@ -989,12 +989,12 @@ Key changes:
 
 **Step 4: Run the test again**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_db_init_with_v2_yaml -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_db_init_with_v2_yaml -v`
 Expected: PASS
 
 **Step 5: Run full test suite**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/ -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/ -v`
 Expected: All PASS
 
 **Step 6: Commit**
@@ -1027,7 +1027,7 @@ def test_db_validate_command_valid(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra4",
+        cwd="/Users/drucev/projects/sra5",
     )
     assert result.returncode == 0
     import json
@@ -1056,14 +1056,14 @@ tasks:
         ],
         capture_output=True,
         text=True,
-        cwd="/Users/drucev/projects/sra4",
+        cwd="/Users/drucev/projects/sra5",
     )
     assert result.returncode == 1
 ```
 
 **Step 2: Run tests to verify they fail**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py::test_db_validate_command_valid -v -x`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py::test_db_validate_command_valid -v -x`
 Expected: FAIL — unrecognized argument 'validate'
 
 **Step 3: Add validate command to db.py**
@@ -1112,7 +1112,7 @@ p_validate.set_defaults(func=cmd_validate)
 
 **Step 4: Run tests to verify they pass**
 
-Run: `cd /Users/drucev/projects/sra4 && uv run pytest tests/test_schema.py -v`
+Run: `cd /Users/drucev/projects/sra5 && uv run pytest tests/test_schema.py -v`
 Expected: All PASS
 
 **Step 5: Commit**

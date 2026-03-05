@@ -1,0 +1,18 @@
+claudeyolo
+
+I would like to brainstorm to make a small web app to assist in running stock research reports in this directory tree
+
+- Professional dark theme interface, luminous, neon but not too garish, use https://www.deepvalue.tech/ for inspiration
+- Status area that shows
+  - current ticker it is working on
+  - list of tasks pending/running/complete/failed
+  - completion progress bar
+- Area with links to existing reports (final_report.md) in the work tree with dates
+- Ticker input
+- Output textarea
+- When I enter ticker ADSK
+    - computes today's date string like 20260301
+    - runs: python research.py ADSK --date 20260301 &
+    - does tail -f work/ADSK_20260301/*stream.log and shows streaming results in the textarea
+- While running, update status area
+- When research completes, it spawns Typora with work/ADSK_20260301/artifacts/final_report.md

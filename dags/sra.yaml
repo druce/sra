@@ -4,7 +4,7 @@ dag:
   inputs:
     ticker: "${ticker}"
     workdir: "${workdir}"
-  root_dir: /Users/drucev/projects/sra4
+  root_dir: /Users/drucev/projects/sra5
   template_dir: templates
   drafts_dir: drafts
   data_dir: data # not implemented, in future write reports based on user-provided data

@@ -2,7 +2,7 @@
 
 ## Context
 
-The existing `stock_research_agent` project uses a Python orchestrator (`research_stock.py`) with subprocess calls to run a multi-phase equity research pipeline. We're rewriting this as a new project (`sra4`) where Claude Code is the orchestrator, using a generic DAG runner that executes tasks defined in YAML. The existing project stays as a working reference — scripts are copied and adapted, not moved.
+The existing `stock_research_agent` project uses a Python orchestrator (`research_stock.py`) with subprocess calls to run a multi-phase equity research pipeline. We're rewriting this as a new project (`sra5`) where Claude Code is the orchestrator, using a generic DAG runner that executes tasks defined in YAML. The existing project stays as a working reference — scripts are copied and adapted, not moved.
 
 Build order: **DAG infrastructure first** → **individual skills** → **end-to-end wiring**.
 
@@ -13,7 +13,7 @@ Build order: **DAG infrastructure first** → **individual skills** → **end-to
 ### Step 1.1: Create new project directory
 
 ```
-sra4/
+sra5/
 ├── dags/                     # DAG YAML definitions
 ├── skills/                   # Python scripts + Claude Code skill definitions
 ├── templates/                # Jinja report templates
@@ -230,7 +230,7 @@ dag:
   inputs:
     ticker: "${ticker}"
     workdir: "${workdir}"
-  root_dir: /Users/drucev/projects/sra4
+  root_dir: /Users/drucev/projects/sra5
   template_dir: templates
 
 tasks:
