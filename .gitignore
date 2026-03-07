@@ -30,6 +30,7 @@ secrets.json
 
 # MCP config (may contain API keys)
 .mcp.json
+mcp-research.json
 
 # Misc
 *.swp
