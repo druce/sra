@@ -170,6 +170,175 @@ tasks:
     outputs:
       index: {path: "artifacts/index/", format: lancedb, description: "LanceDB hybrid search index of all chunked artifacts"}
 
+  # --- Research agent tasks (Claude subagents with MCP tools, run in parallel) ---
+  research_profile:
+    sort_order: 18
+    description: Research company profile, history, and management
+    type: claude
+    depends_on: [build_index, profile, perplexity, wikipedia, perplexity_analysis]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: company profile, history, management, and business overview.
+
+        1. Search the artifact index for relevant background:
+           Run: uv run python skills/search_index/search_index.py "company history overview management" --workdir ${workdir} --sections profile --top-k 15
+
+        2. Use available MCP tools to fill gaps (company profile, executives, Wikipedia).
+
+        3. For each significant finding, record it with:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_profile \
+             --content "<finding>" --source "<source>" --tags profile [other_relevant_tags...]
+
+        Tag any finding cross-relevant to other sections (e.g. leadership changes → risk_news).
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_business:
+    sort_order: 18
+    description: Research business model, revenue streams, and competitive moat
+    type: claude
+    depends_on: [build_index, profile, perplexity, perplexity_analysis]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: business model, revenue streams, unit economics, and competitive moat.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "business model revenue streams products segments" --workdir ${workdir} --sections business_model --top-k 15
+
+        2. Use available MCP tools to research revenue breakdown, segment trends, and moat sources.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_business \
+             --content "<finding>" --source "<source>" --tags business_model [other_relevant_tags...]
+
+        Tag cross-relevant findings (e.g. margin structure → financial, moat → competitive).
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_competitive:
+    sort_order: 18
+    description: Research competitive landscape, market share, and industry dynamics
+    type: claude
+    depends_on: [build_index, profile, perplexity, perplexity_analysis, fundamental]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: competitive landscape, market share, industry dynamics, and positioning.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "competitors market share industry landscape" --workdir ${workdir} --sections competitive --top-k 15
+
+        2. Use available MCP tools to research competitors, peer financials, and market dynamics.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_competitive \
+             --content "<finding>" --source "<source>" --tags competitive [other_relevant_tags...]
+
+        Cross-tag relevant findings to supply_chain, valuation, or risk_news as appropriate.
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_supply_chain:
+    sort_order: 18
+    description: Research supply chain, manufacturing dependencies, and geopolitical exposure
+    type: claude
+    depends_on: [build_index, profile, fetch_edgar, perplexity_analysis]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: supply chain, manufacturing partners, input dependencies, and geopolitical exposure.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "supply chain manufacturing suppliers dependencies" --workdir ${workdir} --sections supply_chain --top-k 15
+
+        2. Use available MCP tools to research key suppliers, concentration risk, and geographic exposure.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_supply_chain \
+             --content "<finding>" --source "<source>" --tags supply_chain [other_relevant_tags...]
+
+        Cross-tag relevant findings to risk_news or competitive as appropriate.
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_financial:
+    sort_order: 18
+    description: Research financial performance, growth trends, and key metrics
+    type: claude
+    depends_on: [build_index, profile, fundamental, fetch_edgar]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: financial performance — revenue growth, margins, cash flow, balance sheet, and key ratios.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "revenue growth margins profitability cash flow balance sheet" --workdir ${workdir} --sections financial --top-k 15
+
+        2. Use available MCP tools to research financial statements, TTM metrics, and trend analysis.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_financial \
+             --content "<finding>" --source "<source>" --tags financial [other_relevant_tags...]
+
+        Cross-tag findings relevant to valuation (margins, FCF) or risk_news (debt levels).
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_valuation:
+    sort_order: 18
+    description: Research valuation multiples, analyst targets, and DCF inputs
+    type: claude
+    depends_on: [build_index, profile, fundamental, fetch_edgar]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: valuation — current multiples, historical ranges, analyst price targets, and DCF inputs.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "valuation P/E EV/EBITDA price target analyst" --workdir ${workdir} --sections valuation --top-k 15
+
+        2. Use available MCP tools to research current multiples, analyst consensus, and peer comparisons.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_valuation \
+             --content "<finding>" --source "<source>" --tags valuation [other_relevant_tags...]
+
+        Cross-tag findings relevant to financial (FCF yield, EPS growth) or competitive (peer multiples).
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
+  research_risk_news:
+    sort_order: 18
+    description: Research risks, recent news events, and regulatory developments
+    type: claude
+    depends_on: [build_index, profile, perplexity, fetch_edgar, perplexity_analysis]
+    config:
+      mcp_config: [mcp-research.json]
+      prompt: |
+        You are a research analyst investigating ${company_name} (${symbol}).
+        Your domain: key risks, recent news events, regulatory developments, and catalysts.
+
+        1. Search the artifact index:
+           Run: uv run python skills/search_index/search_index.py "risks regulatory legal news events catalysts" --workdir ${workdir} --sections risk_news --top-k 15
+
+        2. Use available MCP tools to research recent material events, risk factors, and regulatory filings.
+
+        3. Record each finding:
+           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_risk_news \
+             --content "<finding>" --source "<source>" --tags risk_news [other_relevant_tags...]
+
+        Cross-tag findings relevant to supply_chain, competitive, or valuation as appropriate.
+        Aim for at least 10 substantial findings.
+      disallowed_tools: [WebSearch, WebFetch]
+
   # --- Body section writing tasks (Claude subagents, run in parallel) ---
   write_profile:
     sort_order: 8
