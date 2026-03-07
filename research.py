@@ -146,6 +146,8 @@ async def _invoke_claude(
     max_budget_usd: float | None = None,
     expected_outputs: dict[str, dict] | None = None,
     artifacts_inline: list[str] | None = None,
+    mcp_config: list[str] | None = None,
+    extra_env: dict[str, str] | None = None,
 ) -> dict:
     """Invoke claude CLI with a prompt. Return result dict with status, error, artifacts."""
     abs_workdir = str(workdir.resolve())
@@ -209,12 +211,17 @@ async def _invoke_claude(
     if max_budget_usd is not None:
         cmd.extend(["--max-budget-usd", str(max_budget_usd)])
 
+    for config_path in (mcp_config or []):
+        cmd.extend(["--mcp-config", config_path])
+
     # Save prompt for debugging
     prompt_file = workdir / f"{task_id}_{step_label}_prompt.txt"
     prompt_file.write_text(full_prompt)
 
     # Clear CLAUDECODE env var to allow nested invocation
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    if extra_env:
+        env.update(extra_env)
 
     stderr_log = workdir / f"{task_id}_{step_label}_stderr.log"
     log(f"  [{task_id}] Running ({step_label}): {' '.join(cmd)}")
@@ -373,6 +380,10 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
     else:
         write_outputs = outputs
 
+    # Resolve mcp_config and extra_env
+    task_mcp_config = params.get("mcp_config") or None
+    task_extra_env = {"MCP_CACHE_WORKDIR": str(workdir)} if task_mcp_config else None
+
     # Step 1: Initial write
     result = await _invoke_claude(
         prompt=params["prompt"],
@@ -385,6 +396,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
         max_budget_usd=params.get("max_budget_usd"),
         expected_outputs=write_outputs,
         artifacts_inline=params.get("artifacts_inline") or None,
+        mcp_config=task_mcp_config,
+        extra_env=task_extra_env,
     )
 
     if result["status"] != "complete":
@@ -443,6 +456,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                 max_budget_usd=params.get("max_budget_usd"),
                 expected_outputs=critic_outputs,
                 artifacts_inline=params.get("artifacts_inline") or None,
+                mcp_config=task_mcp_config,
+                extra_env=task_extra_env,
             )
 
             if critic_result["status"] != "complete":
@@ -478,6 +493,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
                 max_budget_usd=params.get("max_budget_usd"),
                 expected_outputs=rewrite_outputs,
                 artifacts_inline=params.get("artifacts_inline") or None,
+                mcp_config=task_mcp_config,
+                extra_env=task_extra_env,
             )
 
             if rewrite_result["status"] != "complete":
