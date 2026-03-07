@@ -341,10 +341,10 @@ tasks:
 
   # --- Body section writing tasks (Claude subagents, run in parallel) ---
   write_profile:
-    sort_order: 8
+    sort_order: 20
     description: "Write Section 2: Extended Profile"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -361,6 +361,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags profile
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -420,10 +430,10 @@ tasks:
       section: {path: "artifacts/section_2_profile.md", format: md, description: "Section 2: Extended profile covering company history, core business, competitors, and recent news"}
 
   write_business_model:
-    sort_order: 9
+    sort_order: 20
     description: "Write Section 3: Business Model"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -440,6 +450,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags business_model
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -505,10 +525,10 @@ tasks:
       section: {path: "artifacts/section_3_business_model.md", format: md, description: "Section 3: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
 
   write_competitive:
-    sort_order: 10
+    sort_order: 20
     description: "Write Section 4: Competitive Landscape"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -525,6 +545,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags competitive
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -583,10 +613,10 @@ tasks:
       section: {path: "artifacts/section_4_competitive.md", format: md, description: "Section 4: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
 
   write_supply_chain:
-    sort_order: 11
+    sort_order: 20
     description: "Write Section 5: Supply Chain Positioning"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -603,6 +633,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags supply_chain
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -661,10 +701,10 @@ tasks:
       section: {path: "artifacts/section_5_supply_chain.md", format: md, description: "Section 5: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
 
   write_financial:
-    sort_order: 12
+    sort_order: 20
     description: "Write Section 6: Financial and Operating Leverage"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -681,6 +721,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags financial
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -741,10 +791,10 @@ tasks:
       section: {path: "artifacts/section_6_financial.md", format: md, description: "Section 6: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
 
   write_valuation:
-    sort_order: 13
+    sort_order: 20
     description: "Write Section 7: Valuation"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -761,6 +811,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags valuation
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
@@ -821,10 +881,10 @@ tasks:
       section: {path: "artifacts/section_7_valuation.md", format: md, description: "Section 7: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
 
   write_risk_news:
-    sort_order: 14
+    sort_order: 20
     description: "Write Section 8: Recent Developments, News Search and Risk Factors"
     type: claude
-    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis]
+    depends_on: [profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis, research_profile, research_business, research_competitive, research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, perplexity-ask, wikipedia, playwright, fetch, filesystem]
@@ -841,6 +901,16 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        Before writing, retrieve research findings for your section:
+          Run: uv run python skills/db.py finding-list --workdir ${workdir} --tags risk_news
+
+        Use these findings as your primary source. They were produced by specialist
+        research agents and include cross-tagged evidence from other domains.
+        Fall back to artifact files in artifacts/ for specific data and citations.
+        Do not call external tools or APIs — focus on synthesis from research findings.
+
+        ---
+
         I have collected comprehensive information on ${ticker} in the directory ${workdir}.
 
         IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
