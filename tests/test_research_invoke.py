@@ -1,15 +1,16 @@
-"""Test that _invoke_claude passes mcp_config flags correctly."""
+"""Test that invoke_claude passes mcp_config flags and extra_env correctly."""
 import asyncio
 import sys
 from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
 
+sys.path.insert(0, str(Path(__file__).parent.parent / "skills"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def test_invoke_claude_mcp_config_in_cmd(tmp_path):
     """mcp_config paths should appear as --mcp-config flags in claude command."""
-    from research import _invoke_claude
+    from utils import invoke_claude
 
     captured_cmd = []
 
@@ -30,7 +31,7 @@ def test_invoke_claude_mcp_config_in_cmd(tmp_path):
 
     async def run():
         with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
-            await _invoke_claude(
+            await invoke_claude(
                 prompt="test prompt",
                 workdir=tmp_path,
                 task_id="test_task",
@@ -47,7 +48,7 @@ def test_invoke_claude_mcp_config_in_cmd(tmp_path):
 
 def test_invoke_claude_extra_env_passed(tmp_path):
     """extra_env should be merged into subprocess environment."""
-    from research import _invoke_claude
+    from utils import invoke_claude
 
     captured_env = {}
 
@@ -67,7 +68,7 @@ def test_invoke_claude_extra_env_passed(tmp_path):
 
     async def run():
         with patch("asyncio.create_subprocess_exec", side_effect=fake_exec):
-            await _invoke_claude(
+            await invoke_claude(
                 prompt="test prompt",
                 workdir=tmp_path,
                 task_id="test_task",

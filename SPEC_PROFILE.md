@@ -36,7 +36,6 @@ python-dotenv
 |----------|----------|---------|
 | `FINNHUB_API_KEY` | No (fallback chain) | Peer detection via Finnhub (free tier) |
 | `OPENBB_PAT` | No (fallback chain) | Peer detection via OpenBB/FMP |
-| `ANTHROPIC_API_KEY` | No (optional filtering) | Claude-based peer filtering |
 
 Peer detection degrades gracefully: if all providers fail, an empty peers list is saved and downstream tasks proceed without peer comparison.
 
@@ -144,9 +143,7 @@ Build peers data from an explicit list of symbols (used when `--peers` flag is p
 
 ### `filter_peers(symbol, company_name, industry, peers_data) -> Tuple[Optional[Dict], Optional[str]]`
 
-Use Claude API to filter peers to true industry peers. Sends the full peer list with the target company's name and industry, gets back keep/exclude decisions with rationale via structured JSON output.
-
-Returns filtered peers dict and rationale string. Returns `None, None` if `ANTHROPIC_API_KEY` is not set, filtering fails, or Claude filters out all peers — caller falls back to unfiltered list.
+Peer filtering is now handled as a Claude Code workflow task (not a direct API call). Returns filtered peers dict and rationale string. Returns `None, None` if filtering fails or Claude filters out all peers — caller falls back to unfiltered list.
 
 ### Internal helpers
 
@@ -175,7 +172,7 @@ Entry point. CLI interface:
 
 1. `get_company_profile(symbol)` — always runs
 2. `get_peers(symbol)` or `get_peers_from_list(symbols)` — auto-detect unless `--peers` provided
-3. `filter_peers(...)` — runs if peers found, filtering enabled, provider is not `"custom"`, and `ANTHROPIC_API_KEY` set
+3. `filter_peers(...)` — runs if peers found, filtering enabled, and provider is not `"custom"`
 4. Save `profile.json` and `peers_list.json` to `{workdir}/artifacts/`
 5. Print JSON manifest to stdout
 

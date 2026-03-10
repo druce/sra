@@ -45,7 +45,7 @@ def main() -> int:
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
-    index_dir = workdir / "artifacts" / "index"
+    index_dir = workdir / "lancedb" / "index"
 
     if not index_dir.exists():
         print(json.dumps({"error": "Index not found — run build_index first"}))

@@ -770,7 +770,64 @@ SQLite-backed cache for MCP tool calls, with requestor tracking per task.
 
 ### Step 3b.5: Research Agents (7 parallel)
 
-Claude tasks that query the LanceDB index, use MCP tools, and record findings.
+Claude tasks that query the LanceDB index, use MCP tools, and record findings. Each agent follows the same pattern (illustrated here with `research_profile`):
+
+**Dependencies:** `depends_on: [build_index]` — waits for the full chunk → tag → index pipeline. By this point all data-gathering artifacts have been chunked, embedded, tagged, and indexed into LanceDB.
+
+**Prompt structure** (variables `${company_name}`, `${symbol}`, `${workdir}` interpolated by `research.py` before dispatch):
+
+1. Role assignment — "You are a research analyst investigating {company}. Your domain: {domain}."
+2. Index search — `uv run python skills/search_index/search_index.py "{query}" --workdir ${workdir} --sections {section} --top-k 15`
+3. MCP gap-filling — use available MCP tools to supplement indexed data
+4. Finding recording — `uv run python skills/db.py finding-add --workdir ${workdir} --task-id {task_id} --content "<finding>" --source "<source>" --tags {section} [cross_tags...]`
+5. Goal: at least 10 substantial findings, with cross-tagging for multi-section relevance
+
+**Command line execution** (built by `invoke_claude()` in `skills/utils.py`):
+
+```bash
+claude --dangerously-skip-permissions --verbose --output-format stream-json \
+  -d /path/to/work/SYMBOL_DATE \
+  -p \
+  --mcp-config mcp-research.json \
+  --disallowedTools WebSearch,WebFetch
+```
+
+The full prompt is piped via stdin. Environment variables set by the orchestrator:
+- `MCP_CACHE_WORKDIR` → workdir path (for the MCP caching proxy)
+- `MCP_TASK_ID` → e.g. `research_profile` (so cached MCP responses are tagged with this requestor)
+
+**Available MCP tools** (from `templates/mcp-research.json.j2`):
+
+| Server | Tools provided |
+|--------|---------------|
+| **filesystem** | Read/write/list files in ~/Documents, ~/Downloads, ~/projects |
+| **fetch** | HTTP fetch (ignores robots.txt) |
+| **wikipedia** | Wikipedia article lookup |
+| **brave-search** | Web search via Brave API |
+| **alphavantage** | Financial data (Alpha Vantage API) |
+| **yfinance** | Yahoo Finance data |
+| **openbb-mcp** | OpenBB financial platform tools |
+
+`WebSearch` and `WebFetch` are **disallowed** — the agent must use the MCP servers instead. All MCP calls are transparently cached by the proxy (`skills/mcp_proxy/mcp_proxy.py`) into `{workdir}/mcp-cache.db`, keyed by `SHA256(tool_name|arguments_json)`.
+
+**Available data sources:**
+- LanceDB index via `search_index.py` — hybrid vector+BM25 search over all chunked artifacts
+- All artifacts on disk in `{workdir}/artifacts/` (profile.json, financials, etc.)
+- MCP tools for live lookups (company profiles, executives, Wikipedia, financial data)
+
+**Outputs:** No file artifacts — findings are recorded into SQLite via `db.py finding-add`. After all 7 agents complete, `index_research` reads the MCP cache + findings, chunks/embeds them, and appends to the LanceDB index for downstream writers.
+
+**The 7 research domains:**
+
+| Task | Domain | Index sections filter |
+|------|--------|-----------------------|
+| `research_profile` | Company profile, history, management | `profile` |
+| `research_business` | Business model, revenue streams, moat | `business_model` |
+| `research_competitive` | Competitive landscape, market share | `competitive` |
+| `research_supply_chain` | Supply chain, manufacturing, geopolitical | `supply_chain` |
+| `research_financial` | Financial performance, growth, ratios | `financial` |
+| `research_valuation` | Valuation multiples, analyst targets, DCF | `valuation` |
+| `research_risk_news` | Risks, news events, regulatory | `risk_news` |
 
 - [x] Add `research_profile`, `research_business`, `research_competitive`, `research_supply_chain`, `research_financial`, `research_valuation`, `research_risk_news` to DAG
 - [x] Each depends on `build_index` + relevant data tasks
@@ -788,13 +845,113 @@ Post-research batch task: reads MCP cache + research findings, chunks/embeds/tag
 - [x] Append to existing LanceDB table + rebuild FTS index
 - [x] Tests in `tests/test_index_research.py`
 
-### Step 3b.7: Unified Writer Retrieval
+### Step 3b.7: Writing Tasks (7 body sections + bookend + polish)
 
-Writers query ONE source (unified LanceDB index) instead of two separate paths.
+Seven Claude-type tasks run in parallel (sort_order 30–36), each writing one section of the equity research report. All use a **critic-optimizer loop** (`n_iterations: 1`).
+
+**Dependencies:** `depends_on: [index_research]` — by this point the unified LanceDB index contains original data artifacts, MCP tool responses from research agents, and all research findings.
+
+**The 7 body writers:**
+
+| Task | Section | Draft path | Output path |
+|------|---------|------------|-------------|
+| `write_profile` | 2: Extended Profile | `drafts/section_2_profile.md` | `artifacts/section_2_profile.md` |
+| `write_business_model` | 3: Business Model | `drafts/section_3_business_model.md` | `artifacts/section_3_business_model.md` |
+| `write_competitive` | 4: Competitive Landscape | `drafts/section_4_competitive.md` | `artifacts/section_4_competitive.md` |
+| `write_supply_chain` | 5: Supply Chain Positioning | `drafts/section_5_supply_chain.md` | `artifacts/section_5_supply_chain.md` |
+| `write_financial` | 6: Financial & Operating Leverage | `drafts/section_6_financial.md` | `artifacts/section_6_financial.md` |
+| `write_valuation` | 7: Valuation | `drafts/section_7_valuation.md` | `artifacts/section_7_valuation.md` |
+| `write_risk_news` | 8: Recent Developments & Risk | `drafts/section_8_risk_news.md` | `artifacts/section_8_risk_news.md` |
+
+**System prompt:** `"You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."`
+
+**Prompt structure** (all 7 share the same pattern):
+
+1. **Index search preamble** — `Run: uv run python skills/search_index/search_index.py "{query}" --workdir ${workdir} --sections {section} --top-k 25`
+2. **Context instructions** — reference to inline artifacts, style guide, "Do not attempt external research — synthesize from the provided data only"
+3. **Section-specific writing instructions** — bullet points unique to each section
+4. Save to `drafts/section_N_name.md`
+
+**Command line** (built by `invoke_claude()` in `skills/utils.py`):
+
+```bash
+claude --dangerously-skip-permissions --verbose --output-format stream-json \
+  -d /path/to/work/SYMBOL_DATE \
+  -p \
+  --disallowedTools WebSearch,WebFetch,Agent,Skill,yfinance,alphavantage,brave-search,wikipedia,openbb-mcp,playwright,fetch,filesystem
+```
+
+The full prompt (system + inline artifacts + task prompt) is piped via stdin. **No `--mcp-config` flag** — writers have no MCP servers, unlike research agents.
+
+**Tool access — what writers CAN and CANNOT use:**
+
+Writers are pure synthesis agents. Their `disallowed_tools` list is designed to keep them focused on existing data:
+
+| Allowed | Why |
+|---------|-----|
+| `Bash` | Required to run `uv run python skills/search_index/search_index.py` for LanceDB queries |
+| `Read` | Read artifact files from disk |
+| `Grep` | Search file contents |
+| `Glob` | Find files by pattern |
+| `Edit`/`Write` | Write the output markdown file |
+
+| Blocked | Why |
+|---------|-----|
+| `WebSearch`, `WebFetch` | No web access — synthesis only |
+| `Agent`, `Skill` | No subagents or slash commands — stay focused |
+| `yfinance`, `alphavantage`, `brave-search`, `wikipedia`, `openbb-mcp` | MCP data servers — all research is already indexed |
+| `playwright`, `fetch`, `filesystem` | MCP utility servers — not needed for writing |
+
+**Inline artifacts** (embedded in prompt for files <50KB):
+
+```yaml
+artifacts_inline:
+  - artifacts/manifest.json
+  - artifacts/profile.json
+  - artifacts/peers_list.json
+  - artifacts/key_ratios.csv
+  - artifacts/income_statement.csv
+  - artifacts/balance_sheet.csv
+  - artifacts/cash_flow.csv
+  - artifacts/analyst_recommendations.json
+  - artifacts/technical_analysis.json
+  - artifacts/news_stories.md
+  - artifacts/8k_summary.json
+```
+
+**Critic-optimizer loop** (`n_iterations: 1`, managed by `run_claude_task()` in `research.py`):
+
+The orchestrator runs **3 separate Claude CLI invocations** per writer:
+
+1. **Initial write** (default model) — runs main prompt, saves to `drafts/section_N_name.md`. Orchestrator copies to `artifacts/` (publish) and `drafts/..._v0.md` (preserve).
+2. **Critic** (`critic_model: claude-sonnet-4-6`) — reads draft, evaluates for clarity, accuracy, completeness, repetition, style guide compliance. Writes numbered issues to `drafts/..._critic_1.md`.
+3. **Rewrite** (`rewrite_model: claude-sonnet-4-6`) — reads draft + critique, addresses each issue. "Do not introduce new research." Saves to `drafts/..._v1.md`. Orchestrator copies `_v1` → `artifacts/` (overwrite published version).
+
+File trail example (`write_profile`, 1 iteration):
+```
+drafts/section_2_profile.md          ← initial write
+drafts/section_2_profile_v0.md       ← preserved copy of initial
+drafts/section_2_profile_critic_1.md ← critique
+drafts/section_2_profile_v1.md       ← revised version
+artifacts/section_2_profile.md       ← published (final = v1)
+```
+
+**Post-writing pipeline:**
+
+1. `assemble_body` (Python) — Jinja template concatenates sections 2–8 → `artifacts/assembled_body.md`
+2. `write_conclusion` (Claude) — reads assembled body, writes <500 word conclusion
+3. `write_intro` (Claude) — reads body + conclusion, writes <100 word intro
+4. `assemble_text` (Python) — Jinja combines intro + body + conclusion → `artifacts/report_body.md`
+5. `critique_body_final` (Claude, Sonnet, $1 budget cap) — critiques full report
+6. `polish_body_final` (Claude, Sonnet, $1 budget cap) — revises based on critique → `artifacts/report_body_final.md`
+7. `final_assembly` (Python) — `render_final.py` produces `artifacts/final_report.md` with title, charts, tables
+
+Bookend/polish tasks (`write_conclusion`, `write_intro`, `critique_body_final`, `polish_body_final`) use a **stricter** disallowed list that also blocks `Bash` — they don't need index searches since they read assembled sections directly via `Read`.
 
 - [x] Writer `depends_on` updated to `[index_research, ...]` (replaces individual `research_*` deps)
 - [x] Writer prompts updated: `search_index.py` replaces `db.py finding-list`
 - [x] `index_research` transitively depends on all `research_*` tasks
+- [x] Consistent `disallowed_tools` across all writer tasks (body writers allow Bash; bookend/polish block it)
 
 ---
 

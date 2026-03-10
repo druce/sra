@@ -19,7 +19,67 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from jinja2 import Environment, FileSystemLoader
+
+# Add skills to path for imports
+_SKILLS_DIR = Path(__file__).parent / "skills"
+if str(_SKILLS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SKILLS_DIR))
+
+from utils import invoke_claude as _invoke_claude  # noqa: E402
+from utils import load_environment as _load_environment  # noqa: E402
+
 DB_PY = Path(__file__).parent / "skills" / "db.py"
+_PROJECT_ROOT = Path(__file__).parent
+
+
+_PROXY_SCRIPT = str(_PROJECT_ROOT / "skills" / "mcp_proxy" / "mcp_proxy.py")
+
+
+def _wrap_with_proxy(server_def: dict) -> dict:
+    """Wrap an MCP server definition with the caching proxy."""
+    if "url" in server_def:
+        return {
+            "command": "uv",
+            "args": [
+                "run", "python", _PROXY_SCRIPT,
+                "--transport", "http",
+                "--url", server_def["url"],
+            ],
+        }
+    real_cmd = server_def.get("command", "")
+    real_args = server_def.get("args", [])
+    args_str = ",".join(str(a) for a in real_args)
+    proxy_args = [
+        "run", "python", _PROXY_SCRIPT,
+        "--transport", "stdio",
+        "--command", real_cmd,
+    ]
+    if args_str:
+        proxy_args += ["--args", args_str]
+    result = {"command": "uv", "args": proxy_args}
+    if "env" in server_def:
+        result["env"] = server_def["env"]
+    return result
+
+
+def hydrate_mcp_configs(workdir: Path) -> None:
+    """Hydrate MCP config templates from templates/*.j2 into workdir, wrapping servers with caching proxy."""
+    template_dir = _PROJECT_ROOT / "templates"
+    env = Environment(loader=FileSystemLoader(str(template_dir)))
+    for template_path in template_dir.glob("mcp-*.json.j2"):
+        output_name = template_path.stem  # e.g. "mcp-research.json"
+        output_path = workdir / output_name
+        if output_path.exists():
+            continue
+        template = env.get_template(template_path.name)
+        hydrated = template.render(os.environ)
+        # Wrap each server with the caching proxy
+        config = json.loads(hydrated)
+        for name, server_def in config.get("mcpServers", {}).items():
+            config["mcpServers"][name] = _wrap_with_proxy(server_def)
+        output_path.write_text(json.dumps(config, indent=2))
+        log(f"Hydrated {template_path.name} -> {output_path} (proxy-wrapped)")
 
 
 def log(msg: str) -> None:
@@ -132,217 +192,6 @@ async def run_python_task(task: dict, workdir: Path, ticker: str) -> dict:
         "error": None,
         "artifacts": manifest.get("artifacts", []),
         "manifest": manifest,
-    }
-
-
-async def _invoke_claude(
-    prompt: str,
-    workdir: Path,
-    task_id: str,
-    step_label: str,
-    disallowed_tools: list[str] | None = None,
-    system: str | None = None,
-    model: str | None = None,
-    max_budget_usd: float | None = None,
-    expected_outputs: dict[str, dict] | None = None,
-    artifacts_inline: list[str] | None = None,
-    mcp_config: list[str] | None = None,
-    extra_env: dict[str, str] | None = None,
-) -> dict:
-    """Invoke claude CLI with a prompt. Return result dict with status, error, artifacts."""
-    abs_workdir = str(workdir.resolve())
-    outputs = expected_outputs or {}
-
-    # Build prompt
-    parts = []
-    if system:
-        parts.append(system)
-        parts.append("")
-
-    inline_artifacts = artifacts_inline or []
-    if inline_artifacts:
-        parts.append(
-            "Key artifacts are included inline below.")
-        parts.append(
-            "Additional files are in artifacts/ — use Read tool for larger files not included inline.")
-    else:
-        parts.append("All research data is in the artifacts/ subdirectory.")
-        parts.append(
-            "Read artifacts/manifest.json for a description of all available files.")
-
-    # Inline artifacts
-    if inline_artifacts:
-        parts.append("")
-        parts.append("--- INLINE ARTIFACTS ---")
-        for art_path in inline_artifacts:
-            full_path = workdir / art_path
-            if full_path.exists() and full_path.stat().st_size < 50_000:
-                parts.append(f"\n## {art_path}\n")
-                parts.append(full_path.read_text())
-            else:
-                log(f"  [{task_id}] Skipping inline: {art_path} (missing or >50KB)")
-        parts.append("--- END INLINE ARTIFACTS ---")
-
-    parts.append("")
-    parts.append("---")
-    parts.append("")
-    parts.append(prompt)
-
-    # Add save instructions for each output
-    for out_name, out_def in outputs.items():
-        out_path = out_def["path"]
-        if out_path not in prompt:
-            parts.append("")
-            parts.append(f'Save your output for "{out_name}" to {out_path}')
-
-    full_prompt = "\n".join(parts)
-
-    # Build claude command
-    cmd = ["claude", "--dangerously-skip-permissions", "--verbose",
-           "--output-format", "stream-json",
-           "-d", abs_workdir, "-p"]
-
-    if disallowed_tools:
-        cmd.extend(["--disallowedTools", ",".join(disallowed_tools)])
-
-    if model:
-        cmd.extend(["--model", model])
-
-    if max_budget_usd is not None:
-        cmd.extend(["--max-budget-usd", str(max_budget_usd)])
-
-    for config_path in (mcp_config or []):
-        cmd.extend(["--mcp-config", config_path])
-
-    # Save prompt for debugging
-    prompt_file = workdir / f"{task_id}_{step_label}_prompt.txt"
-    prompt_file.write_text(full_prompt)
-
-    # Clear CLAUDECODE env var to allow nested invocation
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
-    if extra_env:
-        env.update(extra_env)
-
-    stderr_log = workdir / f"{task_id}_{step_label}_stderr.log"
-    log(f"  [{task_id}] Running ({step_label}): {' '.join(cmd)}")
-    log(f"  [{task_id}] Prompt file: {prompt_file}")
-
-    stream_log_path = workdir / f"{task_id}_stream.log"
-    tools_log_path = workdir / "tools.log"
-    with (
-        open(stderr_log, "w") as err_f,
-        open(tools_log_path, "a") as tools_log,
-        open(stream_log_path, "a") as stream_log,
-    ):
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=err_f,
-            env=env,
-            cwd=abs_workdir,
-            limit=10 * 1024 * 1024,  # 10MB buffer for large JSON lines
-        )
-        # Write prompt to stdin and close
-        proc.stdin.write(full_prompt.encode())
-        await proc.stdin.drain()
-        proc.stdin.close()
-
-        stream_log.write(f"\n{'='*60}\n[{task_id}] step: {step_label}\n{'='*60}\n")
-        stream_log.flush()
-        log(f"  [{task_id}] Streaming to: {stream_log_path}")
-
-        # Stream and parse JSON output
-        try:
-            async for line_bytes in proc.stdout:
-                try:
-                    line = line_bytes.decode().strip()
-                    if not line:
-                        continue
-                    msg = json.loads(line)
-                    msg_type = msg.get("type")
-
-                    # Extract content blocks from any message type
-                    content = []
-                    if msg_type == "assistant":
-                        content = msg.get("message", {}).get("content", [])
-                    elif msg_type == "user":
-                        content = msg.get("message", {}).get("content", [])
-                    if not isinstance(content, list):
-                        content = []
-
-                    for item in content:
-                        item_type = item.get("type")
-                        if item_type == "text":
-                            stream_log.write(item["text"] + "\n")
-                            stream_log.flush()
-                        elif item_type == "thinking":
-                            stream_log.write(f"[thinking] {item['thinking']}\n")
-                            stream_log.flush()
-                        elif item_type == "tool_use":
-                            stream_log.write(f"[tool_use] {item.get('name')} {json.dumps(item.get('input', {}), indent=2)}\n")
-                            stream_log.flush()
-                            entry = {
-                                "event": "PreToolUse",
-                                "task": task_id,
-                                "tool": item.get("name"),
-                                "input": item.get("input"),
-                            }
-                            tools_log.write(json.dumps(entry) + "\n")
-                            tools_log.flush()
-                        elif item_type == "tool_result":
-                            output = item.get("content", "")
-                            if isinstance(output, str) and len(output) > 2000:
-                                output = output[:2000] + "...(truncated)"
-                            stream_log.write(f"[tool_result] {output}\n")
-                            stream_log.flush()
-                            entry = {
-                                "event": "PostToolUse",
-                                "task": task_id,
-                                "tool_use_id": item.get("tool_use_id"),
-                                "output": output,
-                            }
-                            tools_log.write(json.dumps(entry) + "\n")
-                            tools_log.flush()
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        await proc.wait()
-
-    # Check if expected output files were produced (exist and non-empty)
-    missing = []
-    empty = []
-    for out_name, out_def in outputs.items():
-        out_path = workdir / out_def["path"]
-        if not out_path.exists():
-            missing.append(out_def["path"])
-        elif out_path.stat().st_size == 0:
-            empty.append(out_def["path"])
-
-    if missing:
-        return {
-            "status": "failed",
-            "error": f"Missing output files: {', '.join(missing)}",
-            "artifacts": [],
-        }
-
-    if empty:
-        log(f"  [{task_id}] Warning: empty output files: {', '.join(empty)}")
-
-    # Only include artifacts for files that exist and are non-empty
-    artifacts = []
-    for name, odef in outputs.items():
-        out_path = workdir / odef["path"]
-        if out_path.exists() and out_path.stat().st_size > 0:
-            artifacts.append(
-                {"name": name, "path": odef["path"], "format": odef["format"]})
-
-    return {
-        "status": "complete",
-        "error": None,
-        "artifacts": artifacts,
     }
 
 
@@ -705,12 +554,96 @@ def parse_args() -> argparse.Namespace:
         "--retry-failed", action="store_true",
         help="When resuming, also retry previously failed tasks",
     )
+    parser.add_argument(
+        "--task", metavar="TASK_ID",
+        help="Run a single task by ID (workdir must already be initialized)",
+    )
     return parser.parse_args()
 
 
+async def run_single_task(ticker: str, task_id: str, workdir: Path) -> int:
+    """Run a single task by ID. Check deps, dispatch, process, return exit code."""
+    import sqlite3
+
+    db_path = workdir / "research.db"
+    if not db_path.exists():
+        log(f"ERROR: No initialized workdir at {workdir}")
+        log(f"Run:  ./skills/db.py init --workdir {workdir} --dag dags/sra.yaml --ticker {ticker}")
+        return 1
+
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+
+    # Verify task exists
+    task_row = conn.execute("SELECT id FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    if not task_row:
+        available = [r["id"] for r in conn.execute("SELECT id FROM tasks ORDER BY sort_order").fetchall()]
+        conn.close()
+        log(f"ERROR: Task '{task_id}' not found in DAG")
+        log(f"Available tasks: {', '.join(available)}")
+        return 1
+
+    # Check dependencies
+    deps = conn.execute(
+        "SELECT depends_on FROM task_deps WHERE task_id = ?", (task_id,)
+    ).fetchall()
+    unmet = []
+    for dep in deps:
+        dep_status = conn.execute(
+            "SELECT status FROM tasks WHERE id = ?", (dep["depends_on"],)
+        ).fetchone()
+        if not dep_status or dep_status["status"] != "complete":
+            unmet.append(dep["depends_on"])
+
+    if unmet:
+        conn.close()
+        log(f"ERROR: Cannot run '{task_id}': unmet dependencies: {', '.join(unmet)}")
+        return 1
+
+    # Reset task to pending (allows re-running completed/failed tasks)
+    conn.execute(
+        "UPDATE tasks SET status = 'pending', error = NULL WHERE id = ?", (task_id,)
+    )
+    conn.commit()
+    conn.close()
+
+    # Hydrate MCP configs
+    hydrate_mcp_configs(workdir)
+
+    # Get full task config from DB
+    task = await run_db("task-get", "--workdir", str(workdir), "--task-id", task_id)
+
+    # Mark running
+    await run_db(
+        "task-update", "--workdir", str(workdir),
+        "--task-id", task_id, "--status", "running",
+    )
+
+    # Update manifest before dispatch
+    await write_manifest(workdir)
+
+    log(f"Dispatching task: {task_id}")
+    result = await dispatch_task(task, workdir, ticker)
+
+    # Process result
+    completed, failed = await process_results([result], workdir, [task])
+
+    if failed:
+        log(f"Task '{task_id}' FAILED")
+        return 1
+
+    log(f"Task '{task_id}' completed successfully")
+    return 0
+
+
 async def main() -> int:
+    _load_environment()
     args = parse_args()
     ticker = args.ticker.upper()
+
+    if args.task:
+        workdir = Path("work") / f"{ticker}_{args.date}"
+        return await run_single_task(ticker, args.task, workdir)
 
     if args.resume:
         log(f"Resuming research pipeline for {ticker}")
@@ -742,6 +675,9 @@ async def main() -> int:
             return 1
 
     log(f"Workdir: {workdir}")
+
+    # Hydrate MCP config templates into workdir (once, before DAG execution)
+    hydrate_mcp_configs(workdir)
 
     wave = 0
     total_completed = 0

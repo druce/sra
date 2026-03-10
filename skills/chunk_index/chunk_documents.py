@@ -219,7 +219,9 @@ def main() -> int:
 
     # Write chunks.json — consumed by tag_chunks (Claude) and build_index.py.
     # Each entry: {id, text, source, doc_type, embedding}
-    out_path = artifacts_dir / "chunks.json"
+    lancedb_dir = workdir / "lancedb"
+    lancedb_dir.mkdir(parents=True, exist_ok=True)
+    out_path = lancedb_dir / "chunks.json"
     out_path.write_text(json.dumps(all_chunks, indent=2))
     logger.info(f"Wrote {len(all_chunks)} chunks to {out_path}")
 
@@ -227,7 +229,7 @@ def main() -> int:
     # the artifact in the database and determine task success/failure
     print(json.dumps({
         "status": "complete",
-        "artifacts": [{"name": "chunks", "path": "artifacts/chunks.json", "format": "json"}],
+        "artifacts": [{"name": "chunks", "path": "lancedb/chunks.json", "format": "json"}],
         "error": None,
     }))
     return 0

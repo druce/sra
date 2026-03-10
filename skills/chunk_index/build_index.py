@@ -54,16 +54,16 @@ def main() -> int:
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
-    artifacts_dir = workdir / "artifacts"
+    lancedb_dir = workdir / "lancedb"
 
     # chunks.json: produced by chunk_documents.py — array of
     # {id, text, source, doc_type, embedding} for each chunk
-    chunks_path = artifacts_dir / "chunks.json"
+    chunks_path = lancedb_dir / "chunks.json"
 
     # chunk_tags.json: produced by tag_chunks Claude task — array of
     # {id, tags} where tags is a list of section labels like
     # ["competitive", "risk"] that classify each chunk's content
-    tags_path = artifacts_dir / "chunk_tags.json"
+    tags_path = lancedb_dir / "chunk_tags.json"
 
     if not chunks_path.exists():
         print(json.dumps({"status": "failed", "error": "chunks.json not found", "artifacts": []}))
@@ -88,7 +88,7 @@ def main() -> int:
     # Create LanceDB database directory. LanceDB stores data as Lance files
     # (columnar format based on Arrow) — efficient for both vector search
     # and metadata filtering.
-    index_dir = artifacts_dir / "index"
+    index_dir = lancedb_dir / "index"
     index_dir.mkdir(exist_ok=True)
     db = lancedb.connect(str(index_dir))
 
@@ -135,7 +135,7 @@ def main() -> int:
     # the artifact in the database and determine task success/failure
     print(json.dumps({
         "status": "complete",
-        "artifacts": [{"name": "index", "path": "artifacts/index/", "format": "lancedb"}],
+        "artifacts": [{"name": "index", "path": "lancedb/index/", "format": "lancedb"}],
         "error": None,
     }))
     return 0

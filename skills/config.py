@@ -37,12 +37,9 @@ MAX_PARALLEL_WORKERS = 6
 PHASE_API_KEYS: Dict[str, list] = {
     'technical': ['OPENBB_PAT'],
     'fundamental': ['OPENBB_PAT'],
-    'research': ['PERPLEXITY_API_KEY'],
-    'analysis': ['PERPLEXITY_API_KEY'],
     'sec': ['SEC_FIRM', 'SEC_USER'],
     'wikipedia': [],
     'report': [],
-    'deep': ['ANTHROPIC_API_KEY'],
     'final': [],
 }
 
@@ -94,80 +91,6 @@ VOLUME_AVERAGE_DAYS = 20
 MAX_ANALYST_RECOMMENDATIONS = 20
 MAX_NEWS_ARTICLES = 10
 INCOME_STATEMENT_EXCERPT_LENGTH = 5000
-
-# ============================================================================
-# Research Configuration (Perplexity AI)
-# ============================================================================
-PERPLEXITY_MODEL = 'sonar-pro'
-PERPLEXITY_TEMPERATURE = 0.2
-PERPLEXITY_MAX_TOKENS = {
-    'news_stories': 6000,
-    'business_profile': 8000,
-    'executive_profiles': 4000,
-    'business_model': 5000,
-    'competitive': 5000,
-    'risk': 8000,
-    'thesis': 8000,
-}
-
-# News story configuration
-NEWS_STORIES_COUNT = 15      # Number of news stories to include
-NEWS_STORIES_SINCE = '2024'  # Start date for news stories
-
-# Parallel news query templates for comprehensive coverage
-# Each template is formatted with: company_identifier, symbol, NEWS_STORIES_SINCE
-PERPLEXITY_NEWS_QUERIES = [
-    # Query 1: Recent developments
-    (
-        "recent_developments",
-        "Provide a comprehensive summary of major recent developments for {company} "
-        "(ticker: {symbol}) since {since}. For each item include the date, a concise "
-        "headline, 2-3 sentences of detail, and market impact if known.\n\n"
-        "Focus on:\n"
-        "- Quarterly earnings results (beats, misses, guidance changes)\n"
-        "- Revenue trends and segment performance\n"
-        "- Major product launches, platform updates, or service expansions\n"
-        "- M&A activity (acquisitions, divestitures, mergers, joint ventures)\n"
-        "- Restructurings, layoffs, or organizational changes\n"
-        "- Leadership changes (CEO, CFO, board members)\n"
-        "- Capital markets activity (debt issuance, share buybacks, dividends)\n\n"
-        "Order chronologically from most recent. Use Markdown with headers for each story."
-    ),
-    # Query 2: Regulatory & legal
-    (
-        "regulatory_legal",
-        "Provide a comprehensive summary of regulatory, legal, and compliance "
-        "developments for {company} (ticker: {symbol}) since {since}. "
-        "For each item include the date, headline, details, and significance.\n\n"
-        "Focus on:\n"
-        "- SEC investigations or enforcement actions\n"
-        "- Major lawsuits (filed, settled, or dismissed)\n"
-        "- Regulatory approvals or denials\n"
-        "- Short-seller reports or fraud allegations\n"
-        "- Insider trading patterns or notable insider transactions\n"
-        "- Government contracts or policy changes affecting the company\n"
-        "- Industry-specific regulatory changes\n"
-        "- Compliance failures, fines, or consent decrees\n\n"
-        "Order chronologically from most recent. Use Markdown with headers for each item."
-    ),
-    # Query 3: Strategic & competitive
-    (
-        "strategic_competitive",
-        "Provide a comprehensive summary of strategic and competitive developments "
-        "for {company} (ticker: {symbol}) since {since}. "
-        "For each item include the date, headline, details, and implications.\n\n"
-        "Focus on:\n"
-        "- Strategic partnerships and alliances\n"
-        "- Analyst upgrades, downgrades, and price target changes\n"
-        "- Institutional ownership changes (major buyers/sellers)\n"
-        "- Competitive dynamics (market share shifts, new entrants, competitor moves)\n"
-        "- Industry trends affecting the company\n"
-        "- International expansion or market entry/exit\n"
-        "- Technology investments, patents, or R&D breakthroughs\n"
-        "- ESG initiatives or controversies\n\n"
-        "Order chronologically from most recent. Use Markdown with headers for each item."
-    ),
-]
 
 # ============================================================================
 # Deep Research Configuration (Claude)

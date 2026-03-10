@@ -1,0 +1,68 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/drucev/Documents",
+        "/Users/drucev/Downloads",
+        "/Users/drucev/projects"
+      ]
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch",
+        "--ignore-robots-txt"
+      ]
+    },
+    "wikipedia": {
+      "type": "stdio",
+      "command": "/opt/anaconda3/envs/mcp/bin/wikipedia-mcp"
+    },
+    "brave-search": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@modelcontextprotocol/server-brave-search"
+      ],
+      "env": {
+        "BRAVE_API_KEY": "{{ BRAVE_API_KEY }}"
+      }
+    },
+    "alphavantage": {
+      "type": "stdio",
+      "command": "/opt/anaconda3/envs/mcp/bin/python",
+      "args": [
+        "/Users/drucev/projects/MCP/alphavantage/src/alphavantage_mcp_server/server.py"
+      ],
+      "env": {
+        "CONDA_DEFAULT_ENV": "mcp",
+        "PATH": "/opt/anaconda3/envs/mcp/bin:/usr/local/bin:/usr/bin:/bin",
+        "PYTHONPATH": "/Users/drucev/projects/MCP/alphavantage/src",
+        "ALPHA_VANTAGE_API_KEY": "{{ ALPHAVANTAGE_API_KEY }}"
+      }
+    },
+    "yfinance": {
+      "type": "stdio",
+      "command": "/Users/drucev/.local/bin/uv",
+      "args": [
+        "--directory",
+        "/Users/drucev/projects/MCP/yahoo-finance-mcp",
+        "run",
+        "server.py"
+      ]
+    },
+    "openbb-mcp": {
+      "type": "stdio",
+      "command": "/Users/drucev/projects/sra5/.venv/bin/openbb-mcp",
+      "args": [
+        "--transport",
+        "stdio"
+      ]
+    }
+  }
+}

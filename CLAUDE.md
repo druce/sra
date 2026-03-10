@@ -21,7 +21,7 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 
 **DAG execution order** (driven by dependencies, not hardcoded stages):
 1. `profile` (no deps)
-2. `technical`, `fundamental`, `perplexity`, `fetch_edgar`, `wikipedia`, `perplexity_analysis` (depend on profile)
+2. `technical`, `fundamental`, `fetch_edgar`, `wikipedia` (depend on profile)
 3. `chunk_documents` → `tag_chunks` → `build_index` (chunk, tag, and index text artifacts into LanceDB)
 4. 7 `research_*` tasks in parallel (depend on `build_index` + relevant data tasks; use MCP tools via proxy, record findings)
 5. `index_research` (appends MCP cache responses + research findings to LanceDB index)
@@ -43,10 +43,8 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 | `skills/fetch_profile/` | Company profile + peer identification |
 | `skills/fetch_technical/` | Stock chart + technical indicators |
 | `skills/fetch_fundamental/` | Financial statements, ratios, analyst data |
-| `skills/fetch_perplexity/` | Perplexity AI research (news, profiles, executives) |
 | `skills/fetch_edgar/` | SEC filings (10-K, 10-Q, 8-K) |
 | `skills/fetch_wikipedia/` | Wikipedia company summary |
-| `skills/fetch_perplexity_analysis/` | Business model, competitive, risk, thesis analysis via Perplexity |
 | `skills/chunk_index/chunk_documents.py` | Split text artifacts into chunks, embed via OpenAI |
 | `skills/chunk_index/build_index.py` | Build LanceDB hybrid index from chunks + tags |
 | `skills/chunk_index/index_research.py` | Append MCP cache responses + research findings to LanceDB index |
@@ -78,7 +76,6 @@ uv add <package>
 ./skills/fetch_profile/fetch_profile.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_technical/fetch_technical.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_fundamental/fetch_fundamental.py SYMBOL --workdir work/SYMBOL_DATE
-./skills/fetch_perplexity/fetch_perplexity.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_edgar/fetch_edgar.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_wikipedia/fetch_wikipedia.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_analysis/fetch_analysis.py SYMBOL --workdir work/SYMBOL_DATE
@@ -165,4 +162,12 @@ Text artifacts from data-gathering tasks are processed into a searchable LanceDB
 
 ## Environment
 
-Requires a `.env` file with API keys: `ANTHROPIC_API_KEY`, `PERPLEXITY_API_KEY`, `SEC_FIRM`, `SEC_USER`, `FINNHUB_API_KEY`, and others.
+Requires a `.env` file with API keys: `SEC_FIRM`, `SEC_USER`, `OPENAI_API_KEY`, `OPENBB_PAT`, `FMP_API_KEY`, `FINNHUB_API_KEY`, and others. No `ANTHROPIC_API_KEY` needed — all Claude tasks run via Claude Code subprocess.
+
+## Task Endings - "What Else Can I Handle?"
+
+After completing any big task, end with a "Let me take more off your plate" section with three categories:
+
+1. Next actions I can do right now — specific follow-ups I can knock out immediately
+2. Automations or systems I can set up — so you never have to do it manually again
+

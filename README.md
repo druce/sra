@@ -13,7 +13,7 @@ This triggers a 14-task pipeline:
 ```mermaid
 flowchart TD
     profile["profile\n(company identity & peers)"]
-    fetch["fetch data\n(technical, fundamental,\nperplexity, edgar,\nwikipedia, perplexity_analysis)"]
+    fetch["fetch data\n(technical, fundamental,\nedgar, wikipedia)"]
     write_body["write_body\n(Claude: 7-section report)"]
     write_conclusion["write_conclusion\n(Claude: concluding analysis)"]
     write_intro["write_intro\n(Claude: intro paragraph)"]
@@ -43,7 +43,7 @@ flowchart TD
     style final fill:#e8f5e9
 ```
 
-**Phase 1 — Data gathering** (parallel, blue): Profile fetches company identity, then 6 data tasks run concurrently — technicals, fundamentals, Perplexity research, SEC filings, Wikipedia, competitive analysis.
+**Phase 1 — Data gathering** (parallel, blue): Profile fetches company identity, then data tasks run concurrently — technicals, fundamentals, SEC filings, Wikipedia.
 
 **Phase 2 — Writing** (sequential, orange): Claude subagents synthesize all gathered data into a 7-section report body, then conclusion and intro are written. An editor agent critiques and a revision agent polishes.
 
@@ -67,7 +67,6 @@ flowchart TD
 | **TA-Lib** | Technical indicators (SMA, RSI, MACD, ATR, Bollinger Bands) |
 | **OpenBB / FMP** | Financial statements, key ratios, peer comparisons |
 | **Finnhub** | Peer company detection |
-| **Perplexity AI** | News, business profiles, executive bios, competitive/risk analysis |
 | **SEC EDGAR** | 10-K, 10-Q, 8-K filings via edgartools |
 | **Wikipedia** | Company history and background |
 | **Claude subagents** | Report writing, critique, and revision |
@@ -82,7 +81,7 @@ Each run produces `work/{SYMBOL}_{DATE}/artifacts/` containing 40+ files:
 - `income_statement.csv`, `balance_sheet.csv`, `cash_flow.csv`, `key_ratios.csv` — financials
 - `draft_report_body.md`, `draft_report_conclusion.md`, `draft_intro.md` — draft sections
 - `report_body.md`, `report_critique.md`, `report_body_final.md` — critique/revise cycle
-- Perplexity research, SEC filing extracts, Wikipedia summaries
+- SEC filing extracts, Wikipedia summaries
 
 ## Setup
 
@@ -110,11 +109,11 @@ uv sync
 Create a `.env` file in the project root:
 
 ```
-ANTHROPIC_API_KEY=...
-PERPLEXITY_API_KEY=...
 SEC_FIRM=...
 SEC_USER=...
+OPENAI_API_KEY=...       # for embeddings
 OPENBB_PAT=...
+FMP_API_KEY=...
 FINNHUB_API_KEY=...
 ```
 
@@ -136,10 +135,8 @@ Each data-gathering script runs standalone:
 uv run ./skills/fetch_profile/fetch_profile.py AMD --workdir work/AMD_20260225
 uv run ./skills/fetch_technical/fetch_technical.py AMD --workdir work/AMD_20260225
 uv run ./skills/fetch_fundamental/fetch_fundamental.py AMD --workdir work/AMD_20260225
-uv run ./skills/fetch_perplexity/fetch_perplexity.py AMD --workdir work/AMD_20260225
 uv run ./skills/fetch_edgar/fetch_edgar.py AMD --workdir work/AMD_20260225
 uv run ./skills/fetch_wikipedia/fetch_wikipedia.py AMD --workdir work/AMD_20260225
-uv run ./skills/fetch_perplexity_analysis/fetch_perplexity_analysis.py AMD --workdir work/AMD_20260225
 ```
 
 ### Database CLI
@@ -180,8 +177,6 @@ uv run ./skills/db.py status --workdir work/AMD_20260225
 │   ├── fetch_profile/              # Company profile + peers
 │   ├── fetch_technical/            # Chart + technical indicators
 │   ├── fetch_fundamental/          # Financials, ratios, analyst data
-│   ├── fetch_perplexity/           # News, profiles, executives
-│   ├── fetch_perplexity_analysis/  # Business model, competitive, risk
 │   ├── fetch_edgar/                # SEC filings
 │   └── fetch_wikipedia/            # Wikipedia summary
 ├── templates/
