@@ -64,8 +64,8 @@ def _read_company_name(workdir: Path, symbol: str) -> str:
         try:
             with profile_path.open("r") as f:
                 data = json.load(f)
-            name = data.get("name") or data.get(
-                "shortName") or data.get("longName")
+            name = data.get("company_name") or data.get(
+                "longName") or data.get("shortName")
             if name:
                 return name
         except Exception:
