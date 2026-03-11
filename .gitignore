@@ -20,6 +20,7 @@ work/
 *.p12
 credentials.json
 secrets.json
+mcp-servers.json.old
 
 # OS files
 .DS_Store
