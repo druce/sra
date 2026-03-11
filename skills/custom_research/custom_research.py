@@ -63,10 +63,14 @@ Write the result to {tag_output_path}
 
 
 def _get_mcp_config(workdir: Path) -> list[str] | None:
-    """Return MCP config paths if mcp-research.json exists in workdir."""
+    """Return MCP config filenames if mcp-research.json exists in workdir.
+
+    Returns relative filenames (not absolute paths) because invoke_claude
+    runs with cwd=workdir and passes these via --mcp-config.
+    """
     mcp_path = workdir / "mcp-research.json"
     if mcp_path.exists():
-        return [str(mcp_path)]
+        return ["mcp-research.json"]
     return None
 
 
@@ -259,7 +263,7 @@ def main() -> int:
     symbol = validate_symbol(args.ticker)
     workdir = args.workdir or default_workdir(symbol)
 
-    return asyncio.run(run_all(symbol, workdir))
+    return asyncio.run(run_all(symbol, Path(workdir)))
 
 
 if __name__ == "__main__":
