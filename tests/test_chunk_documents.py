@@ -50,7 +50,7 @@ def test_chunk_documents_produces_chunks_json(workdir_with_artifacts):
     rc, manifest, stderr = run_chunk(workdir_with_artifacts)
     assert rc == 0, f"Failed: {stderr}"
     assert manifest["status"] == "complete"
-    chunks_path = workdir_with_artifacts / "artifacts" / "chunks.json"
+    chunks_path = workdir_with_artifacts / "lancedb" / "chunks.json"
     assert chunks_path.exists()
     chunks = json.loads(chunks_path.read_text())
     assert len(chunks) >= 1
@@ -68,7 +68,7 @@ def test_chunk_documents_skips_binary(workdir_with_artifacts):
     (workdir_with_artifacts / "artifacts" / "income.csv").write_text("year,revenue\n2024,60000\n")
     rc, manifest, _ = run_chunk(workdir_with_artifacts)
     assert rc == 0
-    chunks = json.loads((workdir_with_artifacts / "artifacts" / "chunks.json").read_text())
+    chunks = json.loads((workdir_with_artifacts / "lancedb" / "chunks.json").read_text())
     sources = [c["source"] for c in chunks]
     assert not any("chart.png" in s for s in sources)
     assert not any("income.csv" in s for s in sources)
@@ -78,7 +78,7 @@ def test_chunk_documents_skips_binary(workdir_with_artifacts):
 def test_chunk_documents_metadata(workdir_with_artifacts):
     rc, _, _ = run_chunk(workdir_with_artifacts)
     assert rc == 0
-    chunks = json.loads((workdir_with_artifacts / "artifacts" / "chunks.json").read_text())
+    chunks = json.loads((workdir_with_artifacts / "lancedb" / "chunks.json").read_text())
     for c in chunks:
         assert c["source"].startswith("artifacts/")
         assert "doc_type" in c

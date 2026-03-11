@@ -121,19 +121,20 @@ def test_task_ready_each_entry_has_required_fields(workdir):
 
 
 def test_task_ready_unlocks_after_dep_completes(workdir):
-    """Completing 'profile' should unlock tasks that depend only on it."""
+    """Completing profile + peers should unlock tasks that depend on them."""
     run_db("task-update", "--workdir", str(workdir), "--task-id", "profile", "--status", "complete")
+    run_db("task-update", "--workdir", str(workdir), "--task-id", "peers", "--status", "complete")
     rc, out = run_db("task-ready", "--workdir", str(workdir))
     assert rc == 0
     ids = {t["id"] for t in out}
-    # fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis all depend on profile
-    assert any(tid in ids for tid in ("fundamental", "perplexity", "fetch_edgar", "wikipedia", "perplexity_analysis"))
+    # fundamental, fetch_edgar, wikipedia, detailed_profile all depend on [profile, peers]
+    assert any(tid in ids for tid in ("fundamental", "fetch_edgar", "wikipedia", "detailed_profile"))
 
 
 def test_task_ready_failed_deps_dont_block(workdir):
     """A failed dependency should not block downstream tasks."""
-    # Complete all write_profile deps except fetch_edgar (which fails)
-    for tid in ("profile", "technical", "fundamental", "perplexity", "wikipedia", "perplexity_analysis"):
+    # Complete all data-gathering deps except fetch_edgar (which fails)
+    for tid in ("profile", "peers", "technical", "fundamental", "detailed_profile", "wikipedia", "custom_research"):
         run_db("task-update", "--workdir", str(workdir), "--task-id", tid, "--status", "complete")
     run_db("task-update", "--workdir", str(workdir), "--task-id", "fetch_edgar", "--status", "failed",
            "--error", "timeout")
@@ -241,7 +242,15 @@ def test_task_update_no_fields_errors(workdir):
 # ---------------------------------------------------------------------------
 
 
+def _create_artifact_file(workdir, rel_path, content="{}"):
+    """Create a file at workdir/rel_path so artifact-add validation passes."""
+    p = Path(workdir) / rel_path
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content)
+
+
 def test_artifact_add_valid(workdir):
+    _create_artifact_file(workdir, "artifacts/profile.json")
     rc, out = run_db(
         "artifact-add", "--workdir", str(workdir),
         "--task-id", "profile", "--name", "profile",
@@ -257,6 +266,7 @@ def test_artifact_add_valid(workdir):
 
 def test_artifact_add_upserts(workdir):
     """Adding the same (task, name) twice updates, not duplicates."""
+    _create_artifact_file(workdir, "artifacts/profile.json")
     for _ in range(2):
         run_db(
             "artifact-add", "--workdir", str(workdir),
@@ -289,6 +299,8 @@ def test_artifact_list_empty(workdir):
 
 
 def test_artifact_list_all(workdir):
+    _create_artifact_file(workdir, "artifacts/profile.json")
+    _create_artifact_file(workdir, "artifacts/chart.png", content="fake png")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "profile",
            "--name", "profile", "--path", "artifacts/profile.json", "--format", "json")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "technical",
@@ -302,6 +314,8 @@ def test_artifact_list_all(workdir):
 
 
 def test_artifact_list_filter_by_task(workdir):
+    _create_artifact_file(workdir, "artifacts/profile.json")
+    _create_artifact_file(workdir, "artifacts/chart.png", content="fake png")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "profile",
            "--name", "profile", "--path", "artifacts/profile.json", "--format", "json")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "technical",
@@ -315,6 +329,7 @@ def test_artifact_list_filter_by_task(workdir):
 
 
 def test_artifact_list_fields(workdir):
+    _create_artifact_file(workdir, "artifacts/profile.json")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "profile",
            "--name", "profile", "--path", "artifacts/profile.json", "--format", "json",
            "--description", "Company identity and valuation snapshot",
@@ -332,6 +347,8 @@ def test_artifact_list_fields(workdir):
 
 def test_artifact_description_in_list(workdir):
     """artifact-list includes description field for all artifacts."""
+    _create_artifact_file(workdir, "artifacts/profile.json")
+    _create_artifact_file(workdir, "artifacts/chart.png", content="fake png")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "profile",
            "--name", "profile", "--path", "artifacts/profile.json", "--format", "json",
            "--description", "Company profile data")
@@ -357,8 +374,12 @@ def test_output_descriptions_in_task_params(workdir):
     outputs = out["params"]["outputs"]
     assert "description" in outputs["profile"]
     assert len(outputs["profile"]["description"]) > 0
-    assert "description" in outputs["peers_list"]
-    assert len(outputs["peers_list"]["description"]) > 0
+    # peers_list is defined in the 'peers' task, not 'profile'
+    rc2, out2 = run_db("task-get", "--workdir", str(workdir), "--task-id", "peers")
+    assert rc2 == 0
+    peers_outputs = out2["params"]["outputs"]
+    assert "description" in peers_outputs["peers_list"]
+    assert len(peers_outputs["peers_list"]["description"]) > 0
 
 
 # ---------------------------------------------------------------------------
@@ -387,6 +408,7 @@ def test_status_task_details_present(workdir):
 
 
 def test_status_reflects_updates(workdir):
+    _create_artifact_file(workdir, "artifacts/profile.json")
     run_db("task-update", "--workdir", str(workdir), "--task-id", "profile", "--status", "complete")
     run_db("artifact-add", "--workdir", str(workdir), "--task-id", "profile",
            "--name", "profile", "--path", "artifacts/profile.json", "--format", "json")
@@ -425,20 +447,21 @@ def test_research_update_all_statuses(workdir):
 
 def test_task_context_with_deps(workdir):
     """task-context resolves dependency artifacts for a task."""
-    # write_profile depends on: profile, technical, fundamental, perplexity, fetch_edgar, wikipedia, perplexity_analysis
+    # chunk_documents depends on: technical, fundamental, detailed_profile, fetch_edgar, wikipedia, custom_research
     for task, name, fmt in [
-        ("perplexity", "business_profile", "md"),
+        ("detailed_profile", "business_profile", "md"),
         ("wikipedia", "wikipedia_summary", "txt"),
         ("fetch_edgar", "filings_index", "json"),
     ]:
+        _create_artifact_file(workdir, f"artifacts/{name}.{fmt}", content=f"{name} data")
         run_db("artifact-add", "--workdir", str(workdir),
                "--task-id", task, "--name", name,
                "--path", f"artifacts/{name}.{fmt}", "--format", fmt,
                "--summary", f"{name} data")
 
-    rc, out = run_db("task-context", "--workdir", str(workdir), "--task-id", "write_profile")
+    rc, out = run_db("task-context", "--workdir", str(workdir), "--task-id", "chunk_documents")
     assert rc == 0
-    assert out["task_id"] == "write_profile"
+    assert out["task_id"] == "chunk_documents"
     assert len(out["artifacts"]) == 3
     names = {a["name"] for a in out["artifacts"]}
     assert names == {"business_profile", "wikipedia_summary", "filings_index"}
@@ -446,12 +469,13 @@ def test_task_context_with_deps(workdir):
 
 def test_task_context_artifact_fields(workdir):
     """Each artifact in task-context has required fields."""
+    _create_artifact_file(workdir, "artifacts/business_profile.md", content="Business profile data")
     run_db("artifact-add", "--workdir", str(workdir),
-           "--task-id", "perplexity", "--name", "business_profile",
+           "--task-id", "detailed_profile", "--name", "business_profile",
            "--path", "artifacts/business_profile.md", "--format", "md",
            "--summary", "Business profile")
 
-    rc, out = run_db("task-context", "--workdir", str(workdir), "--task-id", "write_profile")
+    rc, out = run_db("task-context", "--workdir", str(workdir), "--task-id", "chunk_documents")
     assert rc == 0
     for a in out["artifacts"]:
         assert "from_task" in a

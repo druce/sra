@@ -33,8 +33,8 @@ def run_search(workdir, query, sections=None, top_k=5):
 @pytest.fixture
 def workdir_with_chunks(tmp_path):
     """Minimal workdir with chunks.json and chunk_tags.json."""
-    art = tmp_path / "artifacts"
-    art.mkdir()
+    lancedb_dir = tmp_path / "lancedb"
+    lancedb_dir.mkdir()
 
     # Fake embeddings (1536 zeros — good enough for index structure tests)
     fake_vec = [0.0] * 1536
@@ -49,13 +49,13 @@ def workdir_with_chunks(tmp_path):
          "source": "artifacts/sec_10k_item1.md", "doc_type": "10-K",
          "embedding": fake_vec},
     ]
-    (art / "chunks.json").write_text(json.dumps(chunks))
+    (lancedb_dir / "chunks.json").write_text(json.dumps(chunks))
     tags = [
         {"id": "wiki_0000", "tags": ["competitive"]},
         {"id": "wiki_0001", "tags": ["financial"]},
         {"id": "10k_0000", "tags": ["supply_chain", "risk_news"]},
     ]
-    (art / "chunk_tags.json").write_text(json.dumps(tags))
+    (lancedb_dir / "chunk_tags.json").write_text(json.dumps(tags))
     return tmp_path
 
 
@@ -63,7 +63,7 @@ def test_build_index_creates_lance_db(workdir_with_chunks):
     rc, manifest, stderr = run_build(workdir_with_chunks)
     assert rc == 0, f"build_index failed: {stderr}"
     assert manifest["status"] == "complete"
-    index_dir = workdir_with_chunks / "artifacts" / "index"
+    index_dir = workdir_with_chunks / "lancedb" / "index"
     assert index_dir.exists()
     assert any(index_dir.iterdir())  # non-empty
 
@@ -73,7 +73,7 @@ def test_build_index_merges_tags(workdir_with_chunks):
     assert rc == 0
     # Verify the index file exists and contains expected data
     import lancedb
-    db = lancedb.connect(str(workdir_with_chunks / "artifacts" / "index"))
+    db = lancedb.connect(str(workdir_with_chunks / "lancedb" / "index"))
     table = db.open_table("chunks")
     df = table.to_pandas()
     assert "tags" in df.columns
