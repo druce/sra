@@ -12,7 +12,7 @@ This module provides common functionality used across all research skills includ
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from dotenv import load_dotenv
 
@@ -345,6 +345,32 @@ def ensure_directory(path: Union[str, Path]) -> Path:
     return path
 
 
+def resolve_company_name(symbol: str, workdir: Union[str, Path]) -> str:
+    """Resolve a human-readable company name from profile.json, falling back to symbol.
+
+    Checks profile.json for company_name, longName, and shortName keys.
+    Returns the symbol string if no name is found.
+
+    Used by fetch_fundamental, fetch_wikipedia, and custom_research to get
+    a display name for the company being researched.
+    """
+    import json
+    profile_path = Path(workdir) / "artifacts" / "profile.json"
+    if profile_path.exists():
+        try:
+            data = json.loads(profile_path.read_text())
+            name = (
+                data.get("company_name")
+                or data.get("longName")
+                or data.get("shortName")
+            )
+            if name and name != "N/A":
+                return name
+        except (json.JSONDecodeError, OSError):
+            pass
+    return symbol
+
+
 def print_section_header(title: str, width: int = 60) -> None:
     """
     Print a formatted section header.
@@ -382,6 +408,23 @@ def print_warning(message: str) -> None:
 def print_info(message: str) -> None:
     """Print info message with circle symbol."""
     print(f"⊘ {message}")
+
+
+def substitute_vars(obj: Any, variables: dict[str, str]) -> Any:
+    """Recursively substitute ${var} placeholders in strings.
+
+    Used by db.py (at init time) and schema.py (at load time) to resolve
+    DAG-level variables like ${ticker}, ${workdir}, ${date} in YAML config.
+    """
+    if isinstance(obj, str):
+        for key, value in variables.items():
+            obj = obj.replace(f"${{{key}}}", str(value))
+        return obj
+    elif isinstance(obj, dict):
+        return {k: substitute_vars(v, variables) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [substitute_vars(item, variables) for item in obj]
+    return obj
 
 
 # Re-export invoke_claude for backwards compatibility — canonical source is claude_runner.py

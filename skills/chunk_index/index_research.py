@@ -22,17 +22,13 @@ import sys
 from pathlib import Path
 
 import lancedb
-import pyarrow as pa
 
 _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from chunk_index.chunk_documents import (  # noqa: E402
-    EMBED_DIM,
-    chunk_text,
-    embed_chunks,
-)
+from chunk_index import CHUNKS_SCHEMA  # noqa: E402
+from chunk_index.chunk_documents import chunk_text, embed_chunks  # noqa: E402
 from utils import setup_logging, load_environment  # noqa: E402
 
 load_environment()
@@ -222,15 +218,7 @@ def main() -> int:
     db = lancedb.connect(str(index_dir))
     if "chunks" not in db.table_names():
         # Create table if it doesn't exist (shouldn't happen in normal flow)
-        schema = pa.schema([
-            pa.field("id", pa.string()),
-            pa.field("text", pa.string()),
-            pa.field("source", pa.string()),
-            pa.field("doc_type", pa.string()),
-            pa.field("tags", pa.string()),
-            pa.field("vector", pa.list_(pa.float32(), EMBED_DIM)),
-        ])
-        table = db.create_table("chunks", data=records, schema=schema)
+        table = db.create_table("chunks", data=records, schema=CHUNKS_SCHEMA)
     else:
         table = db.open_table("chunks")
         table.add(records)

@@ -32,7 +32,7 @@ import sqlite3
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Union
+from typing import Union
 
 _SKILLS_DIR = Path(__file__).resolve().parent
 if str(_SKILLS_DIR) not in sys.path:
@@ -116,12 +116,8 @@ CREATE TABLE IF NOT EXISTS research_findings (
 # Helpers
 # ============================================================================
 
-def get_db(workdir: Union[str, Path]) -> sqlite3.Connection:
-    """Open the SQLite database in the given workdir."""
-    db_path = Path(workdir) / 'research.db'
-    if not db_path.exists():
-        error_exit("research.db not found — run 'init' first")
-    conn = sqlite3.connect(str(db_path))
+def configure_connection(conn: sqlite3.Connection) -> sqlite3.Connection:
+    """Apply standard connection settings (WAL mode, busy timeout, foreign keys)."""
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA busy_timeout=5000")
@@ -129,23 +125,19 @@ def get_db(workdir: Union[str, Path]) -> sqlite3.Connection:
     return conn
 
 
+def get_db(workdir: Union[str, Path]) -> sqlite3.Connection:
+    """Open the SQLite database in the given workdir."""
+    db_path = Path(workdir) / 'research.db'
+    if not db_path.exists():
+        error_exit("research.db not found — run 'init' first")
+    conn = sqlite3.connect(str(db_path))
+    return configure_connection(conn)
+
+
 def error_exit(message: str) -> None:
     """Print error to stderr and exit with code 1."""
     print(json.dumps({"status": "error", "error": message}), file=sys.stdout)
     sys.exit(1)
-
-
-def substitute_vars(obj: Any, variables: dict[str, str]) -> Any:
-    """Recursively substitute ${var} placeholders in strings."""
-    if isinstance(obj, str):
-        for key, value in variables.items():
-            obj = obj.replace(f"${{{key}}}", str(value))
-        return obj
-    elif isinstance(obj, dict):
-        return {k: substitute_vars(v, variables) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [substitute_vars(item, variables) for item in obj]
-    return obj
 
 
 # ============================================================================

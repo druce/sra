@@ -32,19 +32,16 @@ import sys
 from pathlib import Path
 
 import lancedb
-import pyarrow as pa
 
 # Add skills/ to path so we can import shared utilities
 _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
+from chunk_index import CHUNKS_SCHEMA  # noqa: E402
 from utils import setup_logging  # noqa: E402
 
 logger = setup_logging(__name__)
-
-# Must match the embedding dimension from chunk_documents.py (text-embedding-3-small)
-EMBED_DIM = 1536
 
 
 def main() -> int:
@@ -92,17 +89,7 @@ def main() -> int:
     index_dir.mkdir(exist_ok=True)
     db = lancedb.connect(str(index_dir))
 
-    # PyArrow schema defines the table structure. The "vector" field is a
-    # fixed-size list of 1536 floats — LanceDB uses this for ANN (approximate
-    # nearest neighbor) search automatically.
-    schema = pa.schema([
-        pa.field("id", pa.string()),          # Unique chunk ID: "{source_stem}_{idx}"
-        pa.field("text", pa.string()),         # Chunk text content
-        pa.field("source", pa.string()),       # Source file path relative to workdir
-        pa.field("doc_type", pa.string()),     # Document type: "10-K", "news", "analysis", etc.
-        pa.field("tags", pa.string()),         # JSON-encoded list of section tags
-        pa.field("vector", pa.list_(pa.float32(), EMBED_DIM)),  # 1536-dim embedding
-    ])
+    schema = CHUNKS_SCHEMA
 
     # Convert chunks to records, casting embeddings to float32.
     # The embedding values come from OpenAI as Python floats (float64);

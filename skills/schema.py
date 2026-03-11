@@ -10,6 +10,8 @@ from typing import Annotated, Literal, Union
 
 from pydantic import BaseModel, Discriminator, Tag
 
+from utils import substitute_vars
+
 
 class OutputDef(BaseModel):
     """A named artifact produced by a task."""
@@ -233,19 +235,6 @@ def validate_dag(raw: dict) -> DagFile:
 # Variable substitution and entry point
 # ---------------------------------------------------------------------------
 
-def _substitute_vars(obj, variables: dict):
-    """Recursively substitute ${var} placeholders in strings."""
-    if isinstance(obj, str):
-        for key, value in variables.items():
-            obj = obj.replace(f"${{{key}}}", str(value))
-        return obj
-    elif isinstance(obj, dict):
-        return {k: _substitute_vars(v, variables) for k, v in obj.items()}
-    elif isinstance(obj, list):
-        return [_substitute_vars(item, variables) for item in obj]
-    return obj
-
-
 def load_dag(raw: dict, variables: dict | None = None) -> DagFile:
     """Load, substitute variables, validate, and return a DagFile.
 
@@ -263,5 +252,5 @@ def load_dag(raw: dict, variables: dict | None = None) -> DagFile:
         pydantic.ValidationError: On structural errors (missing fields, wrong types)
     """
     if variables:
-        raw = _substitute_vars(raw, variables)
+        raw = substitute_vars(raw, variables)
     return validate_dag(raw)

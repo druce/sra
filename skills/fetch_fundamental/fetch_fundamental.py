@@ -44,7 +44,10 @@ from config import (  # noqa: E402
     MAX_ANALYST_RECOMMENDATIONS,
     MAX_NEWS_ARTICLES,
 )
-from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
+from utils import (  # noqa: E402
+    setup_logging, validate_symbol, ensure_directory, default_workdir,
+    resolve_company_name,
+)
 from fetch_fundamental.sankey import save_income_statement_sankey  # noqa: E402
 
 
@@ -52,25 +55,6 @@ from fetch_fundamental.sankey import save_income_statement_sankey  # noqa: E402
 # Logging — all output to stderr
 # ---------------------------------------------------------------------------
 logger = setup_logging(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Helper: read company name from profile.json (for Sankey title)
-# ---------------------------------------------------------------------------
-def _read_company_name(workdir: Path, symbol: str) -> str:
-    """Try to read company name from profile.json; fall back to symbol."""
-    profile_path = workdir / "artifacts" / "profile.json"
-    if profile_path.exists():
-        try:
-            with profile_path.open("r") as f:
-                data = json.load(f)
-            name = data.get("company_name") or data.get(
-                "longName") or data.get("shortName")
-            if name:
-                return name
-        except Exception:
-            pass
-    return symbol
 
 
 def save_financial_statements(symbol: str, work_dir: Path) -> bool:
@@ -121,7 +105,7 @@ def save_financial_statements(symbol: str, work_dir: Path) -> bool:
 
         # Sankey visualization (best effort — don't fail the whole task)
         if income_stmt is not None:
-            company_name = _read_company_name(work_dir, symbol)
+            company_name = resolve_company_name(symbol, work_dir)
             save_income_statement_sankey(
                 income_stmt, output_dir, symbol, company_name)
 

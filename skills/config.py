@@ -93,6 +93,14 @@ MAX_NEWS_ARTICLES = 10
 INCOME_STATEMENT_EXCERPT_LENGTH = 5000
 
 # ============================================================================
+# Embedding / Chunk Configuration (OpenAI + LanceDB)
+# ============================================================================
+EMBED_MODEL = "text-embedding-3-small"
+EMBED_DIM = 1536
+CHUNK_TARGET_TOKENS = 600
+CHUNK_MAX_TOKENS = 800
+
+# ============================================================================
 # Deep Research Configuration (Claude)
 # ============================================================================
 CLAUDE_MODEL = 'claude-sonnet-4-5-20250929'

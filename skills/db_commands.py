@@ -13,7 +13,7 @@ from pathlib import Path
 
 import yaml
 
-from db import get_db, error_exit, substitute_vars, SCHEMA
+from db import get_db, error_exit, configure_connection, SCHEMA
 
 import logging
 logger = logging.getLogger("db")
@@ -29,10 +29,7 @@ def cmd_init(args: argparse.Namespace) -> None:
 
     db_path = workdir / 'research.db'
     conn = sqlite3.connect(str(db_path))
-    conn.row_factory = sqlite3.Row
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    conn.execute("PRAGMA foreign_keys=ON")
+    configure_connection(conn)
     conn.executescript(SCHEMA)
 
     # Parse and validate DAG YAML

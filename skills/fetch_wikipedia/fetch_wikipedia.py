@@ -33,7 +33,10 @@ if str(_SKILLS_DIR) not in sys.path:
 # isort: split
 
 from config import MAX_RETRIES, RETRY_DELAY_SECONDS  # noqa: E402
-from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
+from utils import (  # noqa: E402
+    setup_logging, validate_symbol, ensure_directory, default_workdir,
+    resolve_company_name,
+)
 
 logger = setup_logging(__name__)
 
@@ -47,33 +50,26 @@ def get_company_name(symbol: str, workdir: str) -> str:
     Resolve a human-readable company name for *symbol*.
 
     Priority:
-        1. ``{workdir}/artifacts/profile.json``  (``company_name`` field)
+        1. ``{workdir}/artifacts/profile.json``  (via resolve_company_name)
         2. yfinance ``ticker.info['longName']``
         3. The raw *symbol* string as a last resort
     """
-    # 1. Try profile.json
-    profile_path = Path(workdir) / "artifacts" / "profile.json"
-    if profile_path.exists():
-        try:
-            with profile_path.open("r") as fh:
-                profile = json.load(fh)
-            name = profile.get("company_name")
-            if name:
-                logger.info("Company name from profile.json: %s", name)
-                return name
-        except (json.JSONDecodeError, OSError) as exc:
-            logger.warning("Could not read profile.json: %s", exc)
+    # 1. Try profile.json (shared logic)
+    name = resolve_company_name(symbol, workdir)
+    if name != symbol:
+        logger.info("Company name from profile.json: %s", name)
+        return name
 
-    # 2. Try yfinance
+    # 2. Try yfinance (wikipedia-specific fallback for better search terms)
     try:
         import yfinance as yf
 
         ticker = yf.Ticker(symbol)
         info = ticker.info or {}
-        name = info.get("longName")
-        if name:
-            logger.info("Company name from yfinance: %s", name)
-            return name
+        yf_name = info.get("longName")
+        if yf_name:
+            logger.info("Company name from yfinance: %s", yf_name)
+            return yf_name
     except Exception as exc:
         logger.warning("yfinance lookup failed: %s", exc)
 

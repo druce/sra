@@ -32,6 +32,7 @@ from utils import (  # noqa: E402
     load_environment,
     default_workdir,
     invoke_claude,
+    resolve_company_name,
 )
 
 load_environment()
@@ -76,16 +77,7 @@ def _get_mcp_config(workdir: Path) -> list[str] | None:
 
 def get_company_name(symbol: str, workdir: Path) -> str:
     """Resolve company name from profile.json or fall back to symbol."""
-    profile_path = workdir / "artifacts" / "profile.json"
-    if profile_path.exists():
-        try:
-            profile = json.loads(profile_path.read_text())
-            name = profile.get("company_name")
-            if name and name != "N/A":
-                return name
-        except (json.JSONDecodeError, OSError):
-            pass
-    return symbol
+    return resolve_company_name(symbol, workdir)
 
 
 async def run_prompt(

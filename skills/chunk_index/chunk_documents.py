@@ -40,20 +40,11 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
+from config import EMBED_MODEL, EMBED_DIM, CHUNK_MAX_TOKENS  # noqa: E402
 from utils import setup_logging, load_environment  # noqa: E402
 
 load_environment()
 logger = setup_logging(__name__)
-
-# OpenAI embedding model — 1536-dim vectors, good balance of quality and cost
-EMBED_MODEL = "text-embedding-3-small"
-EMBED_DIM = 1536
-
-# Chunk size targets in tokens. We accumulate paragraphs until adding the next
-# one would exceed MAX, then finalize. TARGET is unused as a threshold but
-# documents the ideal chunk size for search relevance.
-CHUNK_TARGET_TOKENS = 600
-CHUNK_MAX_TOKENS = 800
 
 # Only chunk text files — skip binary, structured data, and database files
 SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".csv", ".json", ".db", ".pdf"}

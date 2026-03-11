@@ -19,12 +19,11 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
+from config import EMBED_MODEL  # noqa: E402
 from utils import setup_logging, load_environment  # noqa: E402
 
 load_environment()
 logger = setup_logging(__name__)
-
-EMBED_MODEL = "text-embedding-3-small"
 
 
 def reciprocal_rank_fusion(rankings: list[list[str]], k: int = 60) -> list[str]:
