@@ -21,7 +21,7 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 
 **DAG execution order** (driven by dependencies, not hardcoded stages):
 1. `profile` (no deps)
-2. `technical`, `fundamental`, `fetch_edgar`, `wikipedia` (depend on profile)
+2. `technical`, `fundamental`, `fetch_edgar`, `wikipedia`, `custom_research` (depend on profile/peers)
 3. `chunk_documents` → `tag_chunks` → `build_index` (chunk, tag, and index text artifacts into LanceDB)
 4. 7 `research_*` tasks in parallel (depend on `build_index` + relevant data tasks; use MCP tools via proxy, record findings)
 5. `index_research` (appends MCP cache responses + research findings to LanceDB index)
@@ -45,6 +45,7 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 | `skills/fetch_fundamental/` | Financial statements, ratios, analyst data |
 | `skills/fetch_edgar/` | SEC filings (10-K, 10-Q, 8-K) |
 | `skills/fetch_wikipedia/` | Wikipedia company summary |
+| `skills/custom_research/` | Run user-provided investigation prompts via parallel Claude subprocesses |
 | `skills/chunk_index/chunk_documents.py` | Split text artifacts into chunks, embed via OpenAI |
 | `skills/chunk_index/build_index.py` | Build LanceDB hybrid index from chunks + tags |
 | `skills/chunk_index/index_research.py` | Append MCP cache responses + research findings to LanceDB index |
@@ -79,6 +80,7 @@ uv add <package>
 ./skills/fetch_edgar/fetch_edgar.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_wikipedia/fetch_wikipedia.py SYMBOL --workdir work/SYMBOL_DATE
 ./skills/fetch_analysis/fetch_analysis.py SYMBOL --workdir work/SYMBOL_DATE
+./skills/custom_research/custom_research.py SYMBOL --workdir work/SYMBOL_DATE
 ```
 
 ### Database CLI
