@@ -68,6 +68,7 @@ def test_build_index_creates_lance_db(workdir_with_chunks):
     assert any(index_dir.iterdir())  # non-empty
 
 
+@pytest.mark.integration
 def test_build_index_merges_tags(workdir_with_chunks):
     rc, _, _ = run_build(workdir_with_chunks)
     assert rc == 0

@@ -29,7 +29,7 @@ if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
 from config import TEMPLATES_DIR  # noqa: E402
-from utils import ensure_directory, setup_logging  # noqa: E402
+from utils import ensure_directory, format_market_cap, format_number, setup_logging  # noqa: E402
 
 logger = setup_logging(__name__)
 
@@ -131,20 +131,6 @@ def map_technical(raw: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def format_market_cap(value: Any) -> str:
-    """Format raw market cap number to human-readable string."""
-    try:
-        v = float(value)
-        if v >= 1e12:
-            return f"{v / 1e12:.2f}T"
-        if v >= 1e9:
-            return f"{v / 1e9:.1f}B"
-        if v >= 1e6:
-            return f"{v / 1e6:.1f}M"
-        return f"{v:,.0f}"
-    except (ValueError, TypeError):
-        return "N/A"
-
 
 def extract_ratio(ratios: Dict[str, str], metric: str) -> str:
     """Extract a ratio value, stripping trailing % if present."""
@@ -245,21 +231,13 @@ def build_variables(artifacts_dir: Path) -> Dict[str, Any]:
 # Rendering
 # ---------------------------------------------------------------------------
 
-def jinja2_format_number(value: Any) -> str:
-    """Jinja2 filter: format a number with thousands separators."""
-    try:
-        return f"{int(float(value)):,}"
-    except (ValueError, TypeError):
-        return str(value)
-
-
 def render(template_path: Path, variables: Dict[str, Any]) -> str:
     """Render a Jinja2 template with custom filters and variables."""
     env = Environment(
         loader=FileSystemLoader(str(template_path.parent)),
         keep_trailing_newline=True,
     )
-    env.filters["format_number"] = jinja2_format_number
+    env.filters["format_number"] = format_number
 
     template = env.get_template(template_path.name)
     return template.render(**variables)

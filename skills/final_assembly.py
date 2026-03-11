@@ -13,32 +13,10 @@ _SKILLS_DIR = Path(__file__).resolve().parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from utils import setup_logging
+from utils import format_market_cap, format_number, setup_logging
 
 logger = setup_logging(__name__)
 
-
-def format_number(value: int | float) -> str:
-    """Format large numbers with commas."""
-    try:
-        return f"{int(value):,}"
-    except (ValueError, TypeError):
-        return str(value)
-
-
-def format_market_cap(value: int | float) -> str:
-    """Format market cap in human-readable form."""
-    try:
-        v = float(value)
-        if v >= 1e12:
-            return f"{v / 1e12:.2f}T"
-        if v >= 1e9:
-            return f"{v / 1e9:.1f}B"
-        if v >= 1e6:
-            return f"{v / 1e6:.0f}M"
-        return format_number(v)
-    except (ValueError, TypeError):
-        return str(value)
 
 
 def load_json(path: Path) -> dict | list | None:

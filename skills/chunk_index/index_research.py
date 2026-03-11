@@ -21,13 +21,10 @@ import sqlite3
 import sys
 from pathlib import Path
 
-import lancedb
-
 _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from chunk_index import CHUNKS_SCHEMA  # noqa: E402
 from chunk_index.chunk_documents import chunk_text, embed_chunks  # noqa: E402
 from utils import setup_logging, load_environment  # noqa: E402
 
@@ -215,6 +212,9 @@ def main() -> int:
         })
 
     # Append to existing LanceDB table
+    import lancedb
+    from chunk_index import CHUNKS_SCHEMA
+
     db = lancedb.connect(str(index_dir))
     if "chunks" not in db.table_names():
         # Create table if it doesn't exist (shouldn't happen in normal flow)

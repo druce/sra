@@ -8,6 +8,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "skills"))
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
+def _make_fake_proc():
+    """Build a mock subprocess that matches asyncio.subprocess.Process interface."""
+    proc = MagicMock()
+    proc.returncode = 0
+
+    # stdin: write() and close() are synchronous in asyncio.subprocess
+    stdin = MagicMock()
+    stdin.drain = AsyncMock()
+    proc.stdin = stdin
+
+    # stdout: async iterator that yields no lines
+    async def _empty_aiter():
+        return
+        yield  # noqa: unreachable — makes this an async generator
+
+    proc.stdout = _empty_aiter()
+    proc.wait = AsyncMock()
+    return proc
+
+
 def test_invoke_claude_mcp_config_in_cmd(tmp_path):
     """mcp_config paths should appear as --mcp-config flags in claude command."""
     from utils import invoke_claude
@@ -16,13 +36,7 @@ def test_invoke_claude_mcp_config_in_cmd(tmp_path):
 
     async def fake_exec(*cmd, **kwargs):
         captured_cmd.extend(cmd)
-        proc = MagicMock()
-        proc.returncode = 0
-        proc.stdin = AsyncMock()
-        proc.stdout = AsyncMock()
-        proc.stdout.__aiter__ = AsyncMock(return_value=iter([]))
-        proc.wait = AsyncMock()
-        return proc
+        return _make_fake_proc()
 
     # Create a dummy output file
     out_path = tmp_path / "artifacts" / "test.md"
@@ -54,13 +68,7 @@ def test_invoke_claude_extra_env_passed(tmp_path):
 
     async def fake_exec(*cmd, **kwargs):
         captured_env.update(kwargs.get("env", {}))
-        proc = MagicMock()
-        proc.returncode = 0
-        proc.stdin = AsyncMock()
-        proc.stdout = AsyncMock()
-        proc.stdout.__aiter__ = AsyncMock(return_value=iter([]))
-        proc.wait = AsyncMock()
-        return proc
+        return _make_fake_proc()
 
     out_path = tmp_path / "artifacts" / "test.md"
     out_path.parent.mkdir(parents=True)

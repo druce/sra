@@ -150,8 +150,8 @@ def validate_symbol(symbol: str) -> str:
     if not normalized:
         raise ValueError("Symbol cannot be empty")
 
-    # Basic validation - allow alphanumeric and dots (for international tickers)
-    if not all(c.isalnum() or c == '.' for c in normalized):
+    # Basic validation - allow alphanumeric, dots, and dashes (e.g. BRK.B, BF-B)
+    if not all(c.isalnum() or c in '.^-' for c in normalized):
         raise ValueError(f"Invalid symbol format: {symbol}")
 
     return normalized
@@ -189,6 +189,21 @@ def format_currency(value: float, precision: int = 2) -> str:
         return f"${value/1e3:.{precision}f}K"
     else:
         return f"${value:.{precision}f}"
+
+
+def format_market_cap(value) -> str:
+    """Format market cap in human-readable form (e.g. 1.5T, 250.3B, 45.2M)."""
+    try:
+        v = float(value)
+        if v >= 1e12:
+            return f"{v / 1e12:.2f}T"
+        if v >= 1e9:
+            return f"{v / 1e9:.1f}B"
+        if v >= 1e6:
+            return f"{v / 1e6:.1f}M"
+        return f"{v:,.0f}"
+    except (ValueError, TypeError):
+        return "N/A"
 
 
 def format_number(value: Union[int, float], precision: int = 0) -> str:
