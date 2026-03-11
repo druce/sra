@@ -1,7 +1,7 @@
 [project]
 name = "sra5"
 version = "0.1.0"
-description = "Add your description here"
+description = "Async DAG-orchestrated equity research pipeline with Claude writing agents"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

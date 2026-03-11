@@ -12,6 +12,20 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "integration: requires real API keys and network access")
 
 
+def pytest_collection_modifyitems(config, items):
+    """Skip integration tests by default unless --run-integration is passed."""
+    if not config.getoption("--run-integration", default=False):
+        skip_integration = pytest.mark.skip(reason="needs --run-integration option to run")
+        for item in items:
+            if "integration" in item.keywords:
+                item.add_marker(skip_integration)
+
+
+def pytest_addoption(parser):
+    parser.addoption("--run-integration", action="store_true", default=False,
+                     help="run integration tests that require external services")
+
+
 # ---------------------------------------------------------------------------
 # Shared db.py fixture (helpers live in db_test_helpers.py)
 # ---------------------------------------------------------------------------

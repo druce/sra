@@ -47,7 +47,6 @@ load_environment()
 logger = setup_logging(__name__)
 
 # Only chunk text files — skip binary, structured data, and database files
-SKIP_EXTENSIONS = {".png", ".jpg", ".jpeg", ".csv", ".json", ".db", ".pdf"}
 TEXT_EXTENSIONS = {".md", ".txt"}
 
 # cl100k_base is the tokenizer used by GPT-4 and text-embedding-3-small,

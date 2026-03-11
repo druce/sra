@@ -110,7 +110,10 @@ def read_mcp_cache(workdir: Path) -> list[dict]:
         if len(text) < MIN_TEXT_LENGTH:
             continue
 
-        requestors = json.loads(row["requestors"])
+        try:
+            requestors = json.loads(row["requestors"])
+        except (json.JSONDecodeError, TypeError):
+            requestors = []
         tags = tags_from_requestors(requestors)
         source = f"mcp:{row['tool_name']}"
         key_hash = hashlib.sha256(cache_key.encode()).hexdigest()[:6]
@@ -147,7 +150,7 @@ def read_findings(workdir: Path) -> list[dict]:
         if not content or len(content) < MIN_TEXT_LENGTH:
             continue
 
-        finding_id = row["id"][:8]
+        finding_id = str(row["id"])[:8]
         source = row["source"] or f"finding:{row['task_id']}"
         tags = row["tags"]  # Already JSON-encoded from db.py
 

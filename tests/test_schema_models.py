@@ -1,6 +1,7 @@
 """Tests for DAG schema v2 Pydantic models: OutputDef, SetsVarDef, DagHeader, configs, Task."""
 
 import pytest
+from pydantic import ValidationError
 from schema import OutputDef, SetsVarDef, DagHeader
 from schema import PythonConfig, ClaudeConfig, ShellConfig
 
@@ -23,12 +24,12 @@ def test_output_def_with_description():
 
 
 def test_output_def_missing_path():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         OutputDef(format="json")
 
 
 def test_output_def_missing_format():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         OutputDef(path="artifacts/profile.json")
 
 
@@ -44,12 +45,12 @@ def test_sets_var_def_valid():
 
 
 def test_sets_var_def_missing_artifact():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SetsVarDef(key="company_name")
 
 
 def test_sets_var_def_missing_key():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         SetsVarDef(artifact="artifacts/profile.json")
 
 
@@ -71,7 +72,7 @@ def test_dag_header_valid():
 
 
 def test_dag_header_wrong_version():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DagHeader(
             version=1,
             name="Test DAG",
@@ -110,7 +111,7 @@ def test_python_config_valid():
 
 
 def test_python_config_missing_script():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         PythonConfig(args={"ticker": "AAPL"})
 
 
@@ -202,22 +203,22 @@ def test_claude_config_json_schema_string():
 
 
 def test_claude_config_invalid_permission_mode():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClaudeConfig(prompt="Do it", permission_mode="invalid")
 
 
 def test_claude_config_invalid_output_format():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClaudeConfig(prompt="Do it", output_format="xml")
 
 
 def test_claude_config_invalid_effort():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClaudeConfig(prompt="Do it", effort="ultra")
 
 
 def test_claude_config_missing_prompt():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ClaudeConfig()
 
 
@@ -259,7 +260,7 @@ def test_shell_config_valid():
 
 
 def test_shell_config_missing_command():
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ShellConfig()
 
 
@@ -333,7 +334,7 @@ def test_task_unknown_type():
     from pydantic import TypeAdapter
     from schema import Task
     adapter = TypeAdapter(Task)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         adapter.validate_python({
             "description": "Bad task",
             "type": "unknown",
@@ -346,7 +347,7 @@ def test_task_wrong_config_for_type():
     from pydantic import TypeAdapter
     from schema import Task
     adapter = TypeAdapter(Task)
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         adapter.validate_python({
             "description": "Mismatch",
             "type": "python",
@@ -416,7 +417,7 @@ def test_dagfile_valid():
 
 def test_dagfile_version_1_rejected():
     from schema import DagFile
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         DagFile(
             dag={"version": 1, "name": "Old"},
             tasks={},

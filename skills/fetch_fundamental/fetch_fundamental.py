@@ -46,8 +46,10 @@ from config import (  # noqa: E402
 )
 from utils import (  # noqa: E402
     setup_logging, validate_symbol, ensure_directory, default_workdir,
-    resolve_company_name,
+    resolve_company_name, load_environment,
 )
+
+load_environment()
 from fetch_fundamental.sankey import save_income_statement_sankey  # noqa: E402
 
 

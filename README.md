@@ -8,24 +8,32 @@ An async Python-orchestrated equity research pipeline that generates comprehensi
 ./research.py AMD --date 20260225
 ```
 
-This triggers a 14-task pipeline:
+This triggers a 33-task pipeline:
 
 ```mermaid
 flowchart TD
-    profile["profile\n(company identity & peers)"]
-    fetch["fetch data\n(technical, fundamental,\nedgar, wikipedia)"]
-    write_body["write_body\n(Claude: 7-section report)"]
-    write_conclusion["write_conclusion\n(Claude: concluding analysis)"]
-    write_intro["write_intro\n(Claude: intro paragraph)"]
-    assemble["assemble_text\n(Jinja2: combine sections)"]
-    critique["critique_body_final\n(Claude: editorial review)"]
-    polish["polish_body_final\n(Claude: revise per critique)"]
-    final["final_assembly\n(Jinja2 + pandoc → md/html/pdf)"]
+    profile["profile + peers"]
+    fetch["data gathering\n(technical, fundamental,\nedgar, wikipedia, custom)"]
+    chunk["chunk → tag → index\n(LanceDB hybrid search)"]
+    research["7 research agents\n(parallel, MCP-enabled)"]
+    index_research["index_research\n(append MCP + findings)"]
+    writers["7 section writers\n(parallel, query index)"]
+    assemble_body["assemble_body"]
+    write_conclusion["write_conclusion"]
+    write_intro["write_intro"]
+    assemble["assemble_text"]
+    critique["critique_body_final"]
+    polish["polish_body_final"]
+    final["final_assembly\n(Jinja2 + pandoc)"]
 
     profile --> fetch
-    fetch --> write_body
-    write_body --> write_conclusion
-    write_body --> write_intro
+    fetch --> chunk
+    chunk --> research
+    research --> index_research
+    index_research --> writers
+    writers --> assemble_body
+    assemble_body --> write_conclusion
+    assemble_body --> write_intro
     write_conclusion --> write_intro
     write_intro --> assemble
     assemble --> critique
@@ -34,7 +42,11 @@ flowchart TD
 
     style profile fill:#e1f5fe
     style fetch fill:#e1f5fe
-    style write_body fill:#fff3e0
+    style chunk fill:#e1f5fe
+    style research fill:#f3e5f5
+    style index_research fill:#f3e5f5
+    style writers fill:#fff3e0
+    style assemble_body fill:#fff3e0
     style write_conclusion fill:#fff3e0
     style write_intro fill:#fff3e0
     style critique fill:#fff3e0
@@ -43,11 +55,15 @@ flowchart TD
     style final fill:#e8f5e9
 ```
 
-**Phase 1 — Data gathering** (parallel, blue): Profile fetches company identity, then data tasks run concurrently — technicals, fundamentals, SEC filings, Wikipedia.
+**Phase 1 — Data gathering** (blue): Profile and peers are fetched first, then data tasks run concurrently — technicals, fundamentals, SEC filings, Wikipedia, detailed profile, and custom investigation prompts.
 
-**Phase 2 — Writing** (sequential, orange): Claude subagents synthesize all gathered data into a 7-section report body, then conclusion and intro are written. An editor agent critiques and a revision agent polishes.
+**Phase 2 — Chunk & Index** (blue): Text artifacts are chunked, tagged by section, and built into a LanceDB hybrid vector + BM25 index.
 
-**Phase 3 — Assembly** (green): Sections are concatenated via Jinja2, then the final report is assembled with charts and tables and converted to markdown, HTML, and PDF via pandoc.
+**Phase 3 — Research** (purple): 7 research agents query the index in parallel using MCP tools (cached by proxy) and record findings. Results are then indexed back into LanceDB.
+
+**Phase 4 — Writing** (orange): 7 section writers query the unified index in parallel, then sections are assembled, conclusion and intro written, and an editorial critic-optimizer loop polishes the final body.
+
+**Phase 5 — Assembly** (green): Sections are concatenated via Jinja2, then the final report is assembled with charts and tables and converted to markdown, HTML, and PDF via pandoc.
 
 ## Architecture
 
@@ -109,13 +125,18 @@ uv sync
 Create a `.env` file in the project root:
 
 ```
-SEC_FIRM=...
-SEC_USER=...
-OPENAI_API_KEY=...       # for embeddings
-OPENBB_PAT=...
-FMP_API_KEY=...
-FINNHUB_API_KEY=...
+SEC_FIRM=...              # SEC EDGAR identity (firm name)
+SEC_USER=...              # SEC EDGAR identity (email)
+OPENAI_API_KEY=...        # for chunk embeddings (text-embedding-3-small)
+OPENBB_PAT=...            # OpenBB Platform access token
+FMP_API_KEY=...           # Financial Modeling Prep API key
+FINNHUB_API_KEY=...       # Finnhub API key (peer detection)
+BRAVE_API_KEY=...         # Brave Search (MCP research agents)
+ALPHAVANTAGE_API_KEY=...  # Alpha Vantage (MCP research agents)
+PERPLEXITY_API_KEY=...    # Perplexity AI (optional, MCP research)
 ```
+
+No `ANTHROPIC_API_KEY` needed — all Claude tasks run via the Claude Code CLI subprocess.
 
 ## Usage
 
@@ -166,29 +187,43 @@ uv run ./skills/db.py status --workdir work/AMD_20260225
 
 ```
 ├── dags/
-│   └── sra.yaml                    # DAG definition (14 tasks, v2 schema)
+│   └── sra.yaml                    # DAG definition (33 tasks, v2 schema)
 ├── skills/
 │   ├── db.py                       # SQLite state management CLI
+│   ├── db_commands.py              # DB command implementations
 │   ├── schema.py                   # Pydantic DAG validation models
 │   ├── config.py                   # Centralized constants
 │   ├── utils.py                    # Shared utilities
+│   ├── claude_runner.py            # Claude CLI subprocess runner
+│   ├── assemble_text.py            # Section concatenation
+│   ├── final_assembly.py           # Final report assembly
 │   ├── render_template.py          # Generic Jinja2 renderer
-│   ├── render_final.py             # Final report assembly
-│   ├── fetch_profile/              # Company profile + peers
+│   ├── render_final.py             # Final report rendering (pandoc)
+│   ├── fetch_profile/              # Company profile
+│   ├── identify_peers/             # Peer identification
 │   ├── fetch_technical/            # Chart + technical indicators
 │   ├── fetch_fundamental/          # Financials, ratios, analyst data
 │   ├── fetch_edgar/                # SEC filings
-│   └── fetch_wikipedia/            # Wikipedia summary
+│   ├── fetch_wikipedia/            # Wikipedia summary
+│   ├── fetch_detailed_profile_info/ # Parallel web-search profile tasks
+│   ├── custom_research/            # User-provided investigation prompts
+│   ├── chunk_index/                # Chunk, tag, build LanceDB index
+│   ├── search_index/               # Hybrid vector + BM25 search
+│   └── mcp_proxy/                  # MCP caching proxy with requestor tracking
 ├── templates/
-│   ├── assemble_report.md.j2       # Section concatenation
-│   └── final_report.md.j2          # Final formatted report
-├── research.py                       # Async DAG orchestrator (entry point)
-├── tests/
-│   ├── test_db.py
-│   └── test_schema.py
+│   ├── assemble_body.md.j2         # Body section concatenation
+│   ├── assemble_report.md.j2       # Full report concatenation
+│   └── final_report.md.j2          # Final formatted report with charts
+├── scripts/
+│   └── gen_mcp_configs.py          # Generate MCP configs from Claude Desktop
+├── research.py                     # Async DAG orchestrator (entry point)
+├── web.py                          # FastAPI web runner + WebSocket logs
+├── tests/                          # pytest suite (210+ tests)
 └── work/                           # Output (one dir per run)
     └── {SYMBOL}_{DATE}/
         ├── research.db
+        ├── mcp-cache.db
+        ├── drafts/
         └── artifacts/
 ```
 

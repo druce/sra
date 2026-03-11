@@ -309,13 +309,18 @@ async def _consume_stream(
                         tools_f.write(json.dumps(entry) + "\n")
                         tools_f.flush()
             except Exception:
-                pass
-    except Exception:
-        pass
+                pass  # Skip unparseable stream-json lines
+    except Exception as e:
+        logger.warning(f"  [{label}] Stream read error: {e}")
 
 
 def _check_outputs(outputs: dict, workdir: Path, label: str, returncode: int | None) -> dict:
-    """Verify expected output files exist and build the result dict."""
+    """Verify expected output files exist and build the result dict.
+
+    Pass/fail is determined solely by whether expected files exist, not by
+    returncode — the Claude CLI may exit non-zero for transient reasons even
+    when all outputs were successfully written.
+    """
     missing = []
     empty = []
     for out_name, out_def in outputs.items():

@@ -205,6 +205,7 @@ async def run_python_task(task: dict, workdir: Path, ticker: str) -> dict:
             "manifest": None,
         }
 
+    # Exit code convention: 0=success, 1=partial/warnings, >=2=hard failure
     if proc.returncode >= 2 or manifest.get("status") == "failed":
         return {
             "task_id": task["id"],
@@ -754,7 +755,8 @@ async def main() -> int:
             break
 
     # Finalize
-    await run_db("research-update", "--workdir", str(workdir), "--status", "complete")
+    final_status = "complete" if total_failed == 0 else "failed"
+    await run_db("research-update", "--workdir", str(workdir), "--status", final_status)
 
     # Print final status
     status = await run_db("status", "--workdir", str(workdir))

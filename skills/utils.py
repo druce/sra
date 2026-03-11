@@ -12,7 +12,7 @@ This module provides common functionality used across all research skills includ
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 from dotenv import load_dotenv
 
@@ -305,7 +305,7 @@ def safe_get(
     data: dict,
     key: str,
     default: str = 'N/A',
-    formatter: Optional[callable] = None
+    formatter: Optional[Callable[[Any], str]] = None
 ) -> str:
     """
     Safely get value from dictionary with optional formatting.

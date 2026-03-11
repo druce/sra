@@ -524,7 +524,11 @@ def main() -> int:
     parser.add_argument("--debug", action="store_true", help="Enable Claude debug logging")
     args = parser.parse_args()
 
-    symbol = validate_symbol(args.symbol)
+    try:
+        symbol = validate_symbol(args.symbol)
+    except ValueError as e:
+        print(json.dumps({"status": "failed", "artifacts": [], "error": str(e)}))
+        return 2
     workdir = Path(args.workdir) if args.workdir else Path(default_workdir(symbol))
     workdir.mkdir(parents=True, exist_ok=True)
 

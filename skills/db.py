@@ -135,7 +135,7 @@ def get_db(workdir: Union[str, Path]) -> sqlite3.Connection:
 
 
 def error_exit(message: str) -> None:
-    """Print error to stderr and exit with code 1."""
+    """Print error JSON to stdout (where the orchestrator reads it) and exit."""
     print(json.dumps({"status": "error", "error": message}), file=sys.stdout)
     sys.exit(1)
 

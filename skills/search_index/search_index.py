@@ -84,8 +84,9 @@ def main() -> int:
     for _, row in fts_results.iterrows():
         all_rows[row["id"]] = row
 
+    # Apply section filter first, then take top_k results
     output = []
-    for doc_id in merged_ids[: args.top_k]:
+    for doc_id in merged_ids:
         if doc_id not in all_rows:
             continue
         row = all_rows[doc_id]
@@ -99,6 +100,8 @@ def main() -> int:
             "doc_type": row["doc_type"],
             "tags": tags,
         })
+        if len(output) >= args.top_k:
+            break
 
     print(json.dumps(output, indent=2))
     return 0

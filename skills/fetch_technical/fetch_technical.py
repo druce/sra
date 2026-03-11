@@ -37,7 +37,9 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from utils import setup_logging, validate_symbol, ensure_directory, default_workdir  # noqa: E402
+from utils import setup_logging, validate_symbol, ensure_directory, default_workdir, load_environment  # noqa: E402
+
+load_environment()
 
 
 from config import (  # noqa: E402

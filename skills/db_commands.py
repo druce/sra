@@ -98,7 +98,12 @@ def cmd_init(args: argparse.Namespace) -> None:
 
 
 def cmd_task_ready(args: argparse.Namespace) -> None:
-    """Return tasks that are pending with all deps satisfied."""
+    """Return tasks that are pending with all deps satisfied.
+
+    Failed dependencies are treated as satisfied so the pipeline keeps moving.
+    Downstream tasks may produce partial results without all inputs — this is
+    intentional ("auto-skip failures and continue").
+    """
     conn = get_db(args.workdir)
 
     rows = conn.execute("""
@@ -189,11 +194,11 @@ def cmd_task_update(args: argparse.Namespace) -> None:
         elif args.status in ('complete', 'failed', 'skipped'):
             updates.append("completed_at = datetime('now')")
 
-    if args.summary:
+    if args.summary is not None:
         updates.append("summary = ?")
         params.append(args.summary)
 
-    if args.error:
+    if args.error is not None:
         updates.append("error = ?")
         params.append(args.error)
 
@@ -559,7 +564,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
     variables = {
         'ticker': args.ticker,
         'date': getattr(args, 'date', '20260101'),
-        'workdir': getattr(args, 'workdir', '/tmp/validate') if hasattr(args, 'workdir') and args.workdir else '/tmp/validate',
+        'workdir': getattr(args, 'workdir', None) or '/tmp/validate',
     }
 
     try:
