@@ -412,13 +412,13 @@ TASKS = {
 
 # Artifact metadata for the manifest
 ARTIFACT_META = {
-    "news": {"name": "news_stories", "format": "md", "summary": "Major news stories and developments since 2024"},
-    "profile": {"name": "business_profile", "format": "md", "summary": "10-section business profile"},
-    "executives": {"name": "executive_profiles", "format": "md", "summary": "C-suite executive profiles with compensation"},
-    "biz_model": {"name": "business_model", "format": "md", "summary": "Revenue segments, unit economics, competitive moat"},
-    "competitive": {"name": "competitive", "format": "md", "summary": "Market share, competitors, positioning"},
-    "risk": {"name": "risk", "format": "md", "summary": "Risks across 4 categories with specific data"},
-    "thesis": {"name": "investment", "format": "md", "summary": "Bull/bear/base cases, SWOT, catalysts"},
+    "news": {"name": "news_stories", "format": "md", "description": "Recent news stories and developments", "summary": "Major news stories and developments since 2024"},
+    "profile": {"name": "business_profile", "format": "md", "description": "Narrative business overview: history, products, markets, strategy, and competitive positioning", "summary": "10-section business profile"},
+    "executives": {"name": "executive_profiles", "format": "md", "description": "Key executive bios: name, title, background, tenure, and notable achievements", "summary": "C-suite executive profiles with compensation"},
+    "biz_model": {"name": "business_model", "format": "md", "description": "Business model analysis: revenue streams, cost structure, unit economics, scalability, profitability, and moat / defensibility", "summary": "Revenue segments, unit economics, competitive moat"},
+    "competitive": {"name": "competitive", "format": "md", "description": "Competitive landscape: positioning, market share, key competitors, and differentiation", "summary": "Market share, competitors, positioning"},
+    "risk": {"name": "risk", "format": "md", "description": "Risk analysis: regulatory, operational, market, financial, and strategic risks", "summary": "Risks across 4 categories with specific data"},
+    "thesis": {"name": "investment", "format": "md", "description": "Investment thesis: investment rationale, catalysts, bull/bear cases, and valuation", "summary": "Bull/bear/base cases, SWOT, catalysts"},
 }
 
 
@@ -489,6 +489,7 @@ async def run(symbol: str, workdir: Path, debug: bool = False) -> int:
                 "name": meta["name"],
                 "path": output_path,
                 "format": meta["format"],
+                "description": meta.get("description", meta["summary"]),
                 "summary": meta["summary"],
             })
         else:

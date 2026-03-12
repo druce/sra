@@ -206,6 +206,7 @@ async def run_all(symbol: str, workdir: Path) -> int:
     # Build combined tags metadata
     tags_metadata = []
     all_artifacts = []
+    variables = {}
 
     for result, tags in zip(succeeded, tag_results):
         tags_metadata.append({
@@ -213,6 +214,20 @@ async def run_all(symbol: str, workdir: Path) -> int:
             "file": result["output_path"],
             "tags": tags,
         })
+        # Extract title from the first heading in the .md file for description
+        md_path = workdir / result["output_path"]
+        title = None
+        if md_path.exists():
+            for line in md_path.read_text().splitlines():
+                stripped = line.strip()
+                if stripped.startswith("#"):
+                    title = stripped.lstrip("#").strip()
+                    break
+        for art in result["artifacts"]:
+            if title:
+                art["description"] = title
+        if title:
+            variables[f"custom_research_{result['idx']}_desc"] = title
         all_artifacts.extend(result["artifacts"])
 
     # Write combined tags file
@@ -222,6 +237,7 @@ async def run_all(symbol: str, workdir: Path) -> int:
         "name": "custom_research_tags",
         "path": "artifacts/custom_research_tags.json",
         "format": "json",
+        "description": "Section relevance tags for each custom research response",
     })
 
     # Clean up individual tag files
@@ -238,6 +254,7 @@ async def run_all(symbol: str, workdir: Path) -> int:
     print(json.dumps({
         "status": "complete",
         "artifacts": all_artifacts,
+        "variables": variables,
         "error": None,
     }))
 

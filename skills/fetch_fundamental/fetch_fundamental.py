@@ -418,6 +418,7 @@ def _build_manifest(symbol: str, work_dir: Path, task_results: dict) -> dict:
             })
 
         # Sankey PNG
+        sankey_desc = "Income statement Sankey chart: revenue flow through expenses to net income"
         p = artifacts_dir / "income_statement_sankey.png"
         if p.exists():
             artifacts.append({
@@ -425,6 +426,7 @@ def _build_manifest(symbol: str, work_dir: Path, task_results: dict) -> dict:
                 "path": "artifacts/income_statement_sankey.png",
                 "format": "png",
                 "source": "yfinance+plotly",
+                "description": sankey_desc,
                 "summary": "Revenue flow to net income",
             })
         else:
@@ -436,6 +438,7 @@ def _build_manifest(symbol: str, work_dir: Path, task_results: dict) -> dict:
                     "path": "artifacts/income_statement_sankey.html",
                     "format": "html",
                     "source": "yfinance+plotly",
+                    "description": sankey_desc,
                     "summary": "Revenue flow to net income",
                 })
 
@@ -529,6 +532,7 @@ def _build_manifest(symbol: str, work_dir: Path, task_results: dict) -> dict:
                 "path": "artifacts/news.json",
                 "format": "json",
                 "source": "yfinance",
+                "description": f"Recent news for {symbol}",
                 "summary": summary,
             })
 

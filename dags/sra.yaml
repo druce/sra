@@ -228,7 +228,7 @@ tasks:
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: company profile, history, management, and business overview.
 
-        1. Search the artifact index for significant finings relevant to writing a section on company profile, history, management, and business overview:
+        1. Search the artifact index for significant findings relevant to writing a section on company profile, history, management, and business overview:
            Run: uv run python skills/search_index/search_index.py "company history overview management" --workdir ${workdir} --sections profile --top-k 15
 
         2. Use available MCP tools to fill gaps (company profile, executives, Wikipedia).

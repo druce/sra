@@ -4,6 +4,14 @@ An async Python-orchestrated equity research pipeline that generates comprehensi
 
 ## How It Works
 
+Write an equity research report in a structured format with 7 main sections (profile, business model, competitive landscape, supply chain, financials, valuation, risk/news). The pipeline:
+
+- **Gather 'foundational' data** — fetch company profile, peers, technical indicators, fundamentals, SEC filings (10-K/10-Q/8-K), Wikipedia summary, charts, news. Each task outputs JSON/text artifacts to `work/{SYMBOL}_{DATE}/artifacts/`
+- **Chunk & index** — split the longer text artifacts into chunks, embed them, and store in LanceDB with vector + BM25 indexes. Tag each chunk by which report section(s) it's relevant to (profile, competitive, financial, etc.)
+- **Research** — 7 agents run in parallel, one per section. Each queries LanceDB for relevant chunks and uses MCP market data tools to dig deeper. Findings go back into LanceDB, tagged by section — one researcher can surface material useful to other sections
+- **Write** — 7 writers run in parallel, each querying the unified LanceDB index (original data + all research findings) with section-specific filters. Each goes through a critic-rewrite loop
+- **Assemble** — concatenate 7 sections, write conclusion, write intro, assemble full text, run a final critique-polish pass, render to markdown/HTML/PDF
+
 ```bash
 ./research.py AMD --date 20260225
 ```
@@ -33,7 +41,6 @@ flowchart TD
     index_research --> writers
     writers --> assemble_body
     assemble_body --> write_conclusion
-    assemble_body --> write_intro
     write_conclusion --> write_intro
     write_intro --> assemble
     assemble --> critique
@@ -55,15 +62,7 @@ flowchart TD
     style final fill:#e8f5e9
 ```
 
-**Phase 1 — Data gathering** (blue): Profile and peers are fetched first, then data tasks run concurrently — technicals, fundamentals, SEC filings, Wikipedia, detailed profile, and custom investigation prompts.
-
-**Phase 2 — Chunk & Index** (blue): Text artifacts are chunked, tagged by section, and built into a LanceDB hybrid vector + BM25 index.
-
-**Phase 3 — Research** (purple): 7 research agents query the index in parallel using MCP tools (cached by proxy) and record findings. Results are then indexed back into LanceDB.
-
-**Phase 4 — Writing** (orange): 7 section writers query the unified index in parallel, then sections are assembled, conclusion and intro written, and an editorial critic-optimizer loop polishes the final body.
-
-**Phase 5 — Assembly** (green): Sections are concatenated via Jinja2, then the final report is assembled with charts and tables and converted to markdown, HTML, and PDF via pandoc.
+Colors: blue = data gathering & indexing, purple = research, orange = writing & editing, green = final assembly.
 
 ## Architecture
 

@@ -102,12 +102,14 @@ def _save_financials_object(financials_obj, label: str, artifacts_dir: Path) -> 
                 text_path = artifacts_dir / filename.replace(".csv", ".txt")
                 with open(text_path, "w") as f:
                     f.write(str(statement))
+                txt_summary = f"{attr_name} ({label}) as text"
                 saved.append({
                     "name": f"{attr_name}_{label}",
                     "path": f"artifacts/{text_path.name}",
                     "format": "txt",
                     "source": "sec-edgar",
-                    "summary": f"{attr_name} ({label}) as text",
+                    "description": txt_summary,
+                    "summary": txt_summary,
                 })
                 continue
 
@@ -115,12 +117,14 @@ def _save_financials_object(financials_obj, label: str, artifacts_dir: Path) -> 
             df.to_csv(out_path, index=True)
             rows = len(df)
             logger.info("Saved %s (%d rows) -> %s", attr_name, rows, filename)
+            csv_summary = f"{attr_name} ({label}), {rows} rows"
             saved.append({
                 "name": f"{attr_name}_{label}",
                 "path": f"artifacts/{filename}",
                 "format": "csv",
                 "source": "sec-edgar",
-                "summary": f"{attr_name} ({label}), {rows} rows",
+                "description": csv_summary,
+                "summary": csv_summary,
             })
 
         except Exception as exc:
@@ -365,12 +369,14 @@ def main() -> int:
     ok, filings, err = get_filing_index(symbol, workdir)
     if ok and filings is not None:
         success_steps += 1
+        summary = f"{len(filings)} filings in past year"
         artifacts.append({
             "name": "filings_index",
             "path": "artifacts/filings_index.json",
             "format": "json",
             "source": "sec-edgar",
-            "summary": f"{len(filings)} filings in past year",
+            "description": summary,
+            "summary": summary,
         })
     else:
         errors.append(err or "Filing index failed")
@@ -394,12 +400,14 @@ def main() -> int:
             pass
 
         # Add metadata artifact
+        summary_10k_meta = f"10-K metadata, filed {filing_year}"
         artifacts.append({
             "name": "10k_metadata",
             "path": "artifacts/sec_10k_metadata.json",
             "format": "json",
             "source": "sec-edgar",
-            "summary": f"10-K metadata, filed {filing_year}",
+            "description": summary_10k_meta,
+            "summary": summary_10k_meta,
         })
 
         # Add each extracted item as an artifact
@@ -410,12 +418,14 @@ def main() -> int:
                 suffix = item_key.lower().replace(" ", "").replace(".", "")
                 label = item_key
             filename = f"sec_10k_{suffix}.md"
+            item_summary = f"{label} from {filing_year} 10-K ({len(text)} chars)"
             artifacts.append({
                 "name": f"10k_{suffix}",
                 "path": f"artifacts/{filename}",
                 "format": "md",
                 "source": "sec-edgar",
-                "summary": f"{label} from {filing_year} 10-K ({len(text)} chars)",
+                "description": item_summary,
+                "summary": item_summary,
             })
     else:
         if err_10k:
@@ -441,12 +451,14 @@ def main() -> int:
             pass
 
         # Add metadata artifact
+        summary_10q_meta = f"10-Q metadata, filed {filing_date_10q}"
         artifacts.append({
             "name": "10q_metadata",
             "path": "artifacts/sec_10q_metadata.json",
             "format": "json",
             "source": "sec-edgar",
-            "summary": f"10-Q metadata, filed {filing_date_10q}",
+            "description": summary_10q_meta,
+            "summary": summary_10q_meta,
         })
 
         # Add each extracted item
@@ -457,12 +469,14 @@ def main() -> int:
                 suffix = item_key.lower().replace(" ", "").replace(".", "")
                 label = item_key
             filename = f"sec_10q_{suffix}.md"
+            item_summary = f"{label} from 10-Q filed {filing_date_10q} ({len(text)} chars)"
             artifacts.append({
                 "name": f"10q_{suffix}",
                 "path": f"artifacts/{filename}",
                 "format": "md",
                 "source": "sec-edgar",
-                "summary": f"{label} from 10-Q filed {filing_date_10q} ({len(text)} chars)",
+                "description": item_summary,
+                "summary": item_summary,
             })
     else:
         if err_10q:
@@ -493,12 +507,14 @@ def main() -> int:
         ok_8k, summaries_8k, err_8k = get_recent_8k(symbol, workdir)
         if ok_8k and summaries_8k is not None:
             success_steps += 1
+            summary_8k = f"{len(summaries_8k)} 8-K filings in past year"
             artifacts.append({
                 "name": "8k_summary",
                 "path": "artifacts/8k_summary.json",
                 "format": "json",
                 "source": "sec-edgar",
-                "summary": f"{len(summaries_8k)} 8-K filings in past year",
+                "description": summary_8k,
+                "summary": summary_8k,
             })
         else:
             if err_8k:

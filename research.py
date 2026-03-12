@@ -467,6 +467,9 @@ async def process_results(results: list[dict], workdir: Path, tasks: list[dict])
                         "--path", artifact["path"],
                         "--format", artifact.get("format", "unknown"),
                     ]
+                    desc = artifact.get("description") or artifact.get("summary") or ""
+                    if desc:
+                        add_args.extend(["--description", desc])
                     if artifact.get("source"):
                         add_args.extend(["--source", artifact["source"]])
                     if artifact.get("summary"):
@@ -489,6 +492,19 @@ async def process_results(results: list[dict], workdir: Path, tasks: list[dict])
                         "--source-task", task_id,
                     )
                     log(f"  [{task_id}] Set var {var_name}={value}")
+                except Exception as e:
+                    log(f"  Warning: var-set failed for {var_name}: {e}")
+
+            # Extract variables from manifest (for dynamic var emission)
+            manifest_vars = (result.get("manifest") or {}).get("variables", {})
+            for var_name, var_value in manifest_vars.items():
+                try:
+                    await run_db(
+                        "var-set", "--workdir", str(workdir),
+                        "--name", var_name, "--value", str(var_value),
+                        "--source-task", task_id,
+                    )
+                    log(f"  [{task_id}] Set var {var_name}={var_value}")
                 except Exception as e:
                     log(f"  Warning: var-set failed for {var_name}: {e}")
 
