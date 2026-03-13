@@ -35,15 +35,122 @@ def reciprocal_rank_fusion(rankings: list[list[str]], k: int = 60) -> list[str]:
     return sorted(scores, key=lambda x: scores[x], reverse=True)
 
 
+def show_stats(workdir: Path, source_filter: str | None = None, tag_filter: str | None = None) -> int:
+    """Print index statistics, optionally filtered by source pattern and/or tag."""
+    index_dir = workdir / "lancedb" / "index"
+    if not index_dir.exists():
+        print(json.dumps({"error": "Index not found — run build_index first"}))
+        return 1
+
+    db = lancedb.connect(str(index_dir))
+    table = db.open_table("chunks")
+    df = table.to_pandas()
+
+    if source_filter:
+        df = df[df["source"].str.contains(source_filter, case=False)]
+
+    if tag_filter:
+        df = df[df["tags"].apply(lambda t: tag_filter in json.loads(t))]
+
+    if df.empty:
+        filters = []
+        if source_filter:
+            filters.append(f"source='{source_filter}'")
+        if tag_filter:
+            filters.append(f"tag='{tag_filter}'")
+        print(json.dumps({"error": f"No chunks matching {', '.join(filters)}", "total_chunks": 0}))
+        return 0
+
+    total = len(df)
+    doc_types = df["doc_type"].value_counts().to_dict()
+    sources = df["source"].value_counts().to_dict()
+
+    # Tag distribution (tags are JSON-encoded lists)
+    tag_counts: dict[str, int] = {}
+    for tags_json in df["tags"]:
+        for tag in json.loads(tags_json):
+            tag_counts[tag] = tag_counts.get(tag, 0) + 1
+
+    result: dict = {
+        "total_chunks": total,
+        "doc_types": doc_types,
+        "tags": dict(sorted(tag_counts.items(), key=lambda x: -x[1])),
+        "sources": dict(sorted(sources.items(), key=lambda x: -x[1])),
+    }
+
+    # When filtering to a small set, also show individual chunks
+    if source_filter and total <= 50:
+        chunks = []
+        for _, row in df.iterrows():
+            chunks.append({
+                "id": row["id"],
+                "source": row["source"],
+                "doc_type": row["doc_type"],
+                "tags": json.loads(row["tags"]),
+                "text": row["text"][:200] + ("..." if len(row["text"]) > 200 else ""),
+            })
+        result["chunks"] = chunks
+
+    print(json.dumps(result, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("query")
+    parser.add_argument("query", nargs="?", default=None)
     parser.add_argument("--workdir", required=True)
     parser.add_argument("--sections", nargs="*", default=None)
     parser.add_argument("--top-k", type=int, default=10, dest="top_k")
+    parser.add_argument("--stats", action="store_true", help="Show index statistics instead of searching")
+    parser.add_argument("--source", default=None, help="Filter --stats to chunks matching this source pattern")
+    parser.add_argument("--tag", default=None, help="Filter --stats to chunks containing this tag")
+    parser.add_argument("--all", action="store_true",
+                        help="Return all chunks matching --sections filter (no query needed)")
+    parser.add_argument("--max-chars", type=int, default=500_000, dest="max_chars",
+                        help="Max total characters in output (default: 500000, ~125k tokens)")
     args = parser.parse_args()
 
     workdir = Path(args.workdir)
+
+    if args.stats:
+        return show_stats(workdir, args.source, args.tag)
+
+    if args.all:
+        if not args.sections:
+            print(json.dumps({"error": "--all requires --sections"}))
+            return 1
+        index_dir = workdir / "lancedb" / "index"
+        if not index_dir.exists():
+            print(json.dumps({"error": "Index not found — run build_index first"}))
+            return 1
+        db = lancedb.connect(str(index_dir))
+        table = db.open_table("chunks")
+        df = table.to_pandas()
+        output = []
+        total_chars = 0
+        for _, row in df.iterrows():
+            tags = json.loads(row["tags"])
+            if any(s in tags for s in args.sections):
+                text = row["text"]
+                if total_chars + len(text) > args.max_chars:
+                    logger.info(f"Truncating at {len(output)} chunks ({total_chars:,} chars), "
+                                f"max_chars={args.max_chars:,}")
+                    break
+                output.append({
+                    "id": row["id"],
+                    "text": text,
+                    "source": row["source"],
+                    "doc_type": row["doc_type"],
+                    "tags": tags,
+                })
+                total_chars += len(text)
+        print(json.dumps(output, indent=2))
+        return 0
+
+    if not args.query:
+        print(json.dumps({"error": "query is required (or use --stats/--all)"}))
+        return 1
+
     index_dir = workdir / "lancedb" / "index"
 
     if not index_dir.exists():

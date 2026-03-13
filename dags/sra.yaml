@@ -257,10 +257,11 @@ tasks:
         - Financial metrics
         - Recent company news
 
-        1. Search the artifact index for significant findings relevant to writing a section on company profile, history, management, and business overview:
-           Run: uv run python skills/search_index/search_index.py "company history overview management" --workdir ${workdir} --sections profile --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
+           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
-        2. Use available MCP tools to fill gaps (company profile, executives, Wikipedia).
+        2. Identify gaps in the existing material, then use MCP tools to fill them (company profile, executives, news, etc.).
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
@@ -285,10 +286,11 @@ tasks:
         Your job is to gather and organize raw material — not to write the final analysis yet.
         Use the tools available to you to collect data for the section on the company's business model.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "business model revenue streams products segments" --workdir ${workdir} --sections business_model --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
+           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
-        2. Use available data artifacts and MCP tools to research revenue breakdown, segment trends, and moat sources.
+        2. Identify gaps in the existing material, then use MCP tools to research revenue breakdown, segment trends, and moat sources.
 
         Ensure you have all key facts for an analysis of the company's business model:
           - segment revenue breakdown (revenue by segment, $ and %)
@@ -336,10 +338,11 @@ tasks:
         Your job is to gather and organize raw material — not to write the final analysis yet.
         Use the tools available to you to collect data for the section on the company's competitive landscape, market share, industry dynamics, and positioning.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "competitors market share industry landscape" --workdir ${workdir} --sections competitive --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
-        2. Use available MCP tools to research competitors, peer financials, and market dynamics.
+        2. Identify gaps in the existing material, then use MCP tools to research competitors, peer financials, and market dynamics.
         Ensure you have identified all key facts for an analysis of the company's competitive environment:
         - competitors, their value proposition and their market share
         - for significant compeitors
@@ -376,10 +379,11 @@ tasks:
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: supply chain, manufacturing partners, input dependencies, and geopolitical exposure.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "supply chain manufacturing suppliers dependencies" --workdir ${workdir} --sections supply_chain --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
+           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
-        2. Use available MCP tools to research key suppliers, concentration risk, and geographic exposure.
+        2. Identify gaps in the existing material, then use MCP tools to research key suppliers, concentration risk, and geographic exposure.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
@@ -403,10 +407,11 @@ tasks:
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: financial performance — revenue growth, margins, cash flow, balance sheet, and key ratios.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "revenue growth margins profitability cash flow balance sheet" --workdir ${workdir} --sections financial --top-k 20
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
+           Review these results carefully — this is what we already have from SEC filings, financial data, and other ingested sources.
 
-        2. Use available MCP tools to research financial statements, TTM metrics, and trend analysis.
+        2. Identify gaps in the existing material, then use MCP tools to research financial statements, TTM metrics, and trend analysis.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
@@ -430,10 +435,11 @@ tasks:
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: valuation — current multiples, historical ranges, analyst price targets, and DCF inputs.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "valuation P/E EV/EBITDA price target analyst" --workdir ${workdir} --sections valuation --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
+           Review these results carefully — this is what we already have from financial data, analyst estimates, and other ingested sources.
 
-        2. Use available MCP tools to research current multiples, analyst consensus, and peer comparisons.
+        2. Identify gaps in the existing material, then use MCP tools to research current multiples, analyst consensus, and peer comparisons.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
@@ -457,10 +463,11 @@ tasks:
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: key risks, recent news events, regulatory developments, and catalysts.
 
-        1. Search the artifact index:
-           Run: uv run python skills/search_index/search_index.py "risks regulatory legal news events catalysts" --workdir ${workdir} --sections risk_news --top-k 15
+        1. Retrieve everything already indexed for this section:
+           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
+           Review these results carefully — this is what we already have from SEC filings, news, and other ingested sources.
 
-        2. Use available MCP tools to research recent material events, risk factors, and regulatory filings.
+        2. Identify gaps in the existing material, then use MCP tools to research recent material events, risk factors, and regulatory filings.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
@@ -552,10 +559,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "company profile history overview" --workdir ${workdir} --sections profile --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -657,10 +664,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "business model revenue streams products services" --workdir ${workdir} --sections business_model --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -774,10 +781,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "competitors market share competitive landscape" --workdir ${workdir} --sections competitive --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -861,10 +868,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "supply chain suppliers manufacturing dependencies" --workdir ${workdir} --sections supply_chain --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -948,10 +955,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "financial leverage margins cash flow capital allocation" --workdir ${workdir} --sections financial --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -1037,10 +1044,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "valuation P/E EV/EBITDA price target DCF multiples" --workdir ${workdir} --sections valuation --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
@@ -1126,10 +1133,10 @@ tasks:
       prompt: |
         ${artifact_context_inline}
 
-        Before writing, search the unified research index for all relevant material:
-          Run: uv run python skills/search_index/search_index.py "risks regulatory news events catalysts developments" --workdir ${workdir} --sections risk_news --top-k 25
-        This index contains all data artifacts, MCP research responses, and research findings.
-        Use these results as your primary source alongside the inline artifacts above.
+        Before writing, retrieve all research material tagged for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
+        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
         ---
