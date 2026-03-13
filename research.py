@@ -28,6 +28,7 @@ if str(_SKILLS_DIR) not in sys.path:
 
 from utils import invoke_claude as _invoke_claude  # noqa: E402
 from utils import load_environment as _load_environment  # noqa: E402
+from utils import substitute_vars as _substitute_vars  # noqa: E402
 
 DB_PY = Path(__file__).parent / "skills" / "db.py"
 _PROJECT_ROOT = Path(__file__).parent
@@ -541,6 +542,9 @@ async def init_pipeline(ticker: str, dag: str, date: str) -> Path:
     )
     log(f"DB initialized: {result['workdir']}")
 
+    # Create knowledge/ directory for research findings
+    (workdir / "knowledge").mkdir(exist_ok=True)
+
     # Mark running
     await run_db("research-update", "--workdir", str(workdir), "--status", "running")
 
@@ -655,8 +659,16 @@ async def run_single_task(ticker: str, task_id: str, workdir: Path) -> int:
     # Hydrate MCP configs
     hydrate_mcp_configs(workdir)
 
+    # Ensure knowledge/ dir exists for research agents
+    (workdir / "knowledge").mkdir(exist_ok=True)
+
     # Get full task config from DB
     task = await run_db("task-get", "--workdir", str(workdir), "--task-id", task_id)
+
+    # Resolve runtime vars (e.g. company_name, symbol) in task params
+    runtime_vars = await run_db("var-get", "--workdir", str(workdir))
+    if runtime_vars:
+        task["params"] = _substitute_vars(task["params"], runtime_vars)
 
     # Mark running
     await run_db(
@@ -743,6 +755,13 @@ async def main() -> int:
         log(f"\n{'='*60}")
         log(f"Wave {wave}: dispatching {len(ready)} tasks: {', '.join(task_ids)}")
         log(f"{'='*60}")
+
+        # Fetch runtime vars (e.g. company_name, symbol set by profile task)
+        # and resolve them in task params before dispatch
+        runtime_vars = await run_db("var-get", "--workdir", str(workdir))
+        if runtime_vars:
+            for t in ready:
+                t["params"] = _substitute_vars(t["params"], runtime_vars)
 
         # Mark all as running
         for t in ready:

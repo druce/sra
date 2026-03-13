@@ -6,6 +6,20 @@ The existing `stock_research_agent` project uses a Python orchestrator (`researc
 
 Build order: **DAG infrastructure first** → **individual skills** → **end-to-end wiring**.
 
+### Knowledge Base Refactor (2026-03-13)
+
+The post-research pipeline was refactored to separate structured artifacts from unstructured text:
+
+- **Research agents** now write markdown findings to `knowledge/findings_{tag}.md` instead of calling `finding-add`
+- **`research_findings` table** removed from SQLite schema; `finding-add`/`finding-list` commands removed
+- **`index_research.py`** replaced by three-stage pipeline: `chunk_research.py` → `tag_research` (Claude) → `append_index.py`
+- **Primary tags** derived from filename (`findings_profile.md` → tag `profile`); cross-tags assigned by `tag_research`
+- **DAG-level vars**: `research_output_instructions` added for standardized markdown output format
+- **`knowledge/` directory** created by orchestrator alongside `artifacts/` and `drafts/`
+- **Writer dependencies** updated from `index_research` to `append_index`
+
+See `docs/plans/2026-03-13-knowledge-base-refactor.md` for the full plan.
+
 ---
 
 ## Phase 1: Project Skeleton + DAG Infrastructure
@@ -171,18 +185,48 @@ CREATE TABLE research_findings (
 | `var-get --workdir W [--name N]` | Get one variable (with metadata) or all as `{name: value}` dict |
 | `task-context --workdir W --task-id T` | Resolve dependency artifacts for a task (returns all artifacts from depends_on tasks) |
 
-**Two-phase variable substitution:**
+**Three-phase variable substitution:**
 
-1. **Init time (static):** `init` substitutes `${ticker}`, `${date}`, `${workdir}` in all string values before inserting into the database. These are baked in — downstream consumers never see template variables for these.
+Variables are resolved in three passes, each handling a different scope:
 
-2. **Dispatch time (runtime):** Tasks can declare `sets_vars` that extract values from their output artifacts after completion. Each entry maps a variable name to an artifact path + JSON key. After a task completes, the runner reads the artifact, extracts the value, and stores it via `var-set`. Before dispatching a downstream task, the runner calls `var-get` and substitutes any remaining `${var}` placeholders (like `${company_name}`) in task params.
+1. **Init time — pass 1 (built-in vars):** `load_dag()` in `schema.py` runs `substitute_vars()` on the raw YAML dict with `{ticker, workdir, date}`. This resolves `${ticker}`, `${workdir}`, `${date}` everywhere — including inside `dag.vars` values themselves.
 
-**`sets_vars` format in YAML:**
+2. **Init time — pass 2 (DAG-level vars):** After Pydantic validation, `cmd_init()` in `db_commands.py` merges `dag.dag.vars` (user-defined variables from the `vars:` section) with built-in vars. It then runs a second `substitute_vars()` pass on each task's params dict before inserting into the database. Built-in vars take priority over DAG vars. This resolves references like `${artifact_context}` in task prompts at init time.
+
+3. **Dispatch time (runtime vars):** Tasks can declare `sets_vars` that extract values from their output artifacts after completion. Each entry maps a variable name to an artifact path + JSON key. After a task completes, `process_results()` in `research.py` reads the artifact, extracts the value, and stores it via `var-set`. Before dispatching each wave, `research.py` calls `var-get` to fetch all runtime vars and runs `substitute_vars()` on each ready task's params. This resolves placeholders like `${company_name}` and `${symbol}` that were set by earlier tasks (e.g. `profile`).
+
+**DAG-level vars in YAML:**
+```yaml
+dag:
+  version: 2
+  name: Equity Research Report Bot
+  vars:
+    artifact_context: |
+      Information gathered so far is in the artifacts/ subdirectory.
+      Read artifacts/manifest.json for a description of all available files.
+    artifact_context_inline: |
+      Key artifacts are included inline below.
+      Additional files are in artifacts/ — use Read tool for larger files not included inline.
+```
+
+Tasks reference these as `${artifact_context}` or `${artifact_context_inline}` in their prompt text. The values are resolved at init time (pass 2) so they're baked into the database.
+
+**Runtime vars via `sets_vars`:**
 ```yaml
 sets_vars:
   symbol:       {artifact: "artifacts/profile.json", key: "symbol"}
   company_name: {artifact: "artifacts/profile.json", key: "company_name"}
 ```
+
+These remain as `${company_name}` in the database after init. They're resolved at dispatch time when `research.py` fetches runtime vars from `dag_vars` table.
+
+**Resolution order summary:**
+
+| Phase | Where | What resolves | Example |
+|-------|-------|---------------|---------|
+| Pass 1 (init) | `schema.py load_dag()` | `${ticker}`, `${workdir}`, `${date}` | `${ticker}` → `AAPL` |
+| Pass 2 (init) | `db_commands.py cmd_init()` | `dag.vars` keys | `${artifact_context}` → "All research data..." |
+| Pass 3 (dispatch) | `research.py` main loop | `dag_vars` table entries | `${company_name}` → "Apple Inc" |
 
 **Pydantic model:** `SetsVarDef(artifact: str, key: str)` — stored in task params JSON as `params.sets_vars`.
 
@@ -259,6 +303,7 @@ Wave 10: critique_body_final → polish_body_final → final_assembly
 - `ClaudeConfig(prompt, system, tools, ...)` — invokes Claude Code CLI (maps to `claude -p` flags)
 - `ShellConfig(command)` — runs a shell command
 - `_TaskBase(description, depends_on, outputs, sets_vars)` — common task fields
+- `DagHeader(version, name, vars, inputs, ...)` — DAG metadata including user-defined variables
 - `DagFile(dag: DagHeader, tasks: dict[str, Task])` — root model
 
 **ClaudeConfig fields** map to `claude -p` CLI flags: `prompt`, `system`, `append_system`, `model`, `fallback_model`, `tools` (string "all" or list), `allowed_tools`, `disallowed_tools`, `permission_mode`, `skip_permissions`, `max_budget_usd`, `output_format`, `json_schema`, `effort`, `add_dirs`, `mcp_config`.
@@ -882,6 +927,8 @@ claude --dangerously-skip-permissions --verbose --output-format stream-json \
 ```
 
 The full prompt (system + inline artifacts + task prompt) is piped via stdin. **No `--mcp-config` flag** — writers have no MCP servers, unlike research agents.
+
+**Prompt assembly** (`_build_prompt()` in `skills/claude_runner.py`): The function concatenates system preamble (if any), inline artifact blocks (for files <50KB), a `---` separator, and the task prompt. It does NOT inject any artifact context header — that text is defined as DAG-level variables (`${artifact_context}`, `${artifact_context_inline}`) and referenced directly in task prompts in `dags/sra.yaml`.
 
 **Tool access — what writers CAN and CANNOT use:**
 

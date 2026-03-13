@@ -53,6 +53,13 @@ def cmd_init(args: argparse.Namespace) -> None:
     except Exception as e:
         error_exit(f"DAG validation failed: {e}")
 
+    # Second-pass: merge DAG-level vars with built-in vars for task param substitution.
+    # DAG vars may reference ${ticker}/${workdir}/${date} which were already resolved
+    # in the first pass. Built-in vars take priority over DAG vars.
+    from utils import substitute_vars
+    dag_level_vars = dag.dag.vars or {}
+    all_vars = {**dag_level_vars, **variables}
+
     # Extract dag-level metadata
     template_dir = dag.dag.template_dir
     drafts_dir = dag.dag.drafts_dir
@@ -71,6 +78,10 @@ def cmd_init(args: argparse.Namespace) -> None:
         params['outputs'] = {k: v.model_dump() for k, v in task.outputs.items()}
         if task.sets_vars:
             params['sets_vars'] = {k: v.model_dump() for k, v in task.sets_vars.items()}
+
+        # Second-pass: resolve DAG-level vars (e.g. ${artifact_context}) in task params
+        if dag_level_vars:
+            params = substitute_vars(params, all_vars)
 
         conn.execute(
             """INSERT INTO tasks (id, sort_order, skill, description, params, concurrency)
@@ -455,55 +466,6 @@ def cmd_var_get(args: argparse.Namespace) -> None:
             result[row["name"]] = row["value"]
 
         print(json.dumps(result))
-
-
-def cmd_finding_add(args: argparse.Namespace) -> None:
-    """Add a research finding tagged with section relevance."""
-    import uuid
-    conn = get_db(args.workdir)
-
-    row = conn.execute("SELECT id FROM tasks WHERE id = ?", (args.task_id,)).fetchone()
-    if not row:
-        conn.close()
-        error_exit(f"Task not found: {args.task_id}")
-
-    finding_id = str(uuid.uuid4())
-    tags = json.dumps(args.tags or [])
-    conn.execute(
-        """INSERT INTO research_findings (id, task_id, content, source, tags)
-           VALUES (?, ?, ?, ?, ?)""",
-        (finding_id, args.task_id, args.content, args.source, tags)
-    )
-    conn.commit()
-    conn.close()
-    print(json.dumps({"status": "ok", "id": finding_id}))
-
-
-def cmd_finding_list(args: argparse.Namespace) -> None:
-    """List research findings, optionally filtered by tags."""
-    conn = get_db(args.workdir)
-
-    rows = conn.execute(
-        "SELECT id, task_id, content, source, tags, created_at FROM research_findings ORDER BY created_at"
-    ).fetchall()
-
-    result = []
-    for row in rows:
-        tags = json.loads(row["tags"])
-        if args.tags:
-            if not any(t in tags for t in args.tags):
-                continue
-        result.append({
-            "id": row["id"],
-            "task_id": row["task_id"],
-            "content": row["content"],
-            "source": row["source"],
-            "tags": tags,
-            "created_at": row["created_at"],
-        })
-
-    conn.close()
-    print(json.dumps(result, indent=2))
 
 
 def cmd_task_context(args: argparse.Namespace) -> None:

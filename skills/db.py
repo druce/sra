@@ -22,6 +22,9 @@ Commands:
     var-set         Set a runtime DAG variable
     var-get         Get one or all runtime DAG variables
 
+Note: finding-add and finding-list were removed. Research agents now write
+markdown files to knowledge/findings_*.md instead of recording findings in SQLite.
+
 Command implementations live in db_commands.py. This module provides the
 schema, helper functions, and CLI argument parser.
 """
@@ -101,14 +104,6 @@ CREATE TABLE IF NOT EXISTS dag_vars (
     created_at    TEXT DEFAULT (datetime('now'))
 );
 
-CREATE TABLE IF NOT EXISTS research_findings (
-    id          TEXT PRIMARY KEY,
-    task_id     TEXT NOT NULL REFERENCES tasks(id),
-    content     TEXT NOT NULL,
-    source      TEXT,
-    tags        TEXT NOT NULL DEFAULT '[]',
-    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
 """
 
 
@@ -150,7 +145,7 @@ def main() -> int:
         cmd_init, cmd_task_ready, cmd_task_get, cmd_task_update,
         cmd_task_context, cmd_artifact_add, cmd_artifact_list,
         cmd_status, cmd_research_update, cmd_var_set, cmd_var_get,
-        cmd_finding_add, cmd_finding_list, cmd_validate,
+        cmd_validate,
     )
 
     parser = argparse.ArgumentParser(
@@ -227,19 +222,6 @@ def main() -> int:
     p_vget.add_argument('--workdir', required=True)
     p_vget.add_argument('--name', default=None, help='Variable name (omit for all)')
 
-    # finding-add
-    p_fadd = subparsers.add_parser('finding-add', help='Add a research finding')
-    p_fadd.add_argument('--workdir', required=True)
-    p_fadd.add_argument('--task-id', required=True, dest='task_id')
-    p_fadd.add_argument('--content', required=True)
-    p_fadd.add_argument('--source', default=None)
-    p_fadd.add_argument('--tags', nargs='*', default=[])
-
-    # finding-list
-    p_flist = subparsers.add_parser('finding-list', help='List research findings')
-    p_flist.add_argument('--workdir', required=True)
-    p_flist.add_argument('--tags', nargs='*', default=None)
-
     # validate
     p_validate = subparsers.add_parser('validate', help='Validate a DAG YAML file')
     p_validate.add_argument('--dag', default='dags/sra.yaml')
@@ -264,8 +246,6 @@ def main() -> int:
         'research-update': cmd_research_update,
         'var-set': cmd_var_set,
         'var-get': cmd_var_get,
-        'finding-add': cmd_finding_add,
-        'finding-list': cmd_finding_list,
         'validate': cmd_validate,
     }
 

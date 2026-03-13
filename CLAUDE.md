@@ -23,9 +23,9 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 1. `profile` (no deps)
 2. `technical`, `fundamental`, `fetch_edgar`, `wikipedia`, `custom_research` (depend on profile/peers)
 3. `chunk_documents` → `tag_chunks` → `build_index` (chunk, tag, and index text artifacts into LanceDB)
-4. 7 `research_*` tasks in parallel (depend on `build_index` + relevant data tasks; use MCP tools via proxy, record findings)
-5. `index_research` (appends MCP cache responses + research findings to LanceDB index)
-6. 7 `write_*` tasks in parallel (depend on `index_research` + data tasks; query unified LanceDB index)
+4. 7 `research_*` tasks in parallel (depend on `build_index`; use MCP tools via proxy, write findings to `knowledge/findings_{tag}.md`)
+5. `chunk_research` → `tag_research` → `append_index` (chunk, cross-tag, and append research findings to LanceDB)
+6. 7 `write_*` tasks in parallel (depend on `append_index` + data tasks; query unified LanceDB index)
 7. `assemble_body` (concatenates 7 sections into assembled_body.md)
 8. `write_conclusion` (depends on assemble_body), then `write_intro` (depends on both)
 9. `assemble_text` (depends on all writers)
@@ -36,7 +36,7 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 | File | Purpose |
 |------|---------|
 | `research.py` | Async DAG orchestrator — entry point for full pipeline |
-| `skills/db.py` | Core SQLite CLI — init, validate, task-ready, task-get, task-update, artifact-add, artifact-list, finding-add, finding-list, status, research-update |
+| `skills/db.py` | Core SQLite CLI — init, validate, task-ready, task-get, task-update, artifact-add, artifact-list, status, research-update |
 | `skills/schema.py` | Pydantic models for DAG YAML v2 schema validation |
 | `skills/config.py` | Centralized constants (timeouts, API keys, indicator params, model settings) |
 | `skills/utils.py` | Logging, formatting, directory helpers |
@@ -48,7 +48,8 @@ Stock Research Agent — an async Python-orchestrated equity research pipeline. 
 | `skills/custom_research/` | Run user-provided investigation prompts via parallel Claude subprocesses |
 | `skills/chunk_index/chunk_documents.py` | Split text artifacts into chunks, embed via OpenAI |
 | `skills/chunk_index/build_index.py` | Build LanceDB hybrid index from chunks + tags |
-| `skills/chunk_index/index_research.py` | Append MCP cache responses + research findings to LanceDB index |
+| `skills/chunk_index/chunk_research.py` | Chunk and embed research findings from knowledge/findings_*.md |
+| `skills/chunk_index/append_index.py` | Append cross-tagged research findings to LanceDB index |
 | `skills/search_index/search_index.py` | Hybrid vector + BM25 search over LanceDB index |
 | `skills/mcp_proxy/mcp_proxy.py` | MCP caching proxy with requestor tracking |
 | `dags/sra.yaml` | Default DAG (v2 schema) defining all tasks with typed configs and dependencies |
@@ -96,8 +97,6 @@ All flags are named (not positional). `--path` for `artifact-add` is relative to
 ./skills/db.py task-context --workdir work/SYMBOL_DATE --task-id TASK_ID
 ./skills/db.py artifact-add --workdir work/SYMBOL_DATE --task-id TASK_ID --name NAME --path PATH --format FORMAT [--description TEXT] [--source TEXT] [--summary TEXT]
 ./skills/db.py artifact-list --workdir work/SYMBOL_DATE [--task TASK_ID]
-./skills/db.py finding-add --workdir work/SYMBOL_DATE --task-id TASK_ID --content TEXT --source TEXT [--tags TAG1 TAG2 ...]
-./skills/db.py finding-list --workdir work/SYMBOL_DATE [--tags TAG1 TAG2 ...]
 ./skills/db.py status --workdir work/SYMBOL_DATE
 ./skills/db.py research-update --workdir work/SYMBOL_DATE --status STATUS
 ./skills/db.py var-set --workdir work/SYMBOL_DATE --name NAME --value VALUE [--source-task TASK_ID]
@@ -135,9 +134,9 @@ Text artifacts from data-gathering tasks are processed into a searchable LanceDB
 
 1. **chunk_documents.py** — splits `.md`/`.txt` artifacts into paragraph-boundary chunks (~600–800 tokens), embeds via OpenAI `text-embedding-3-small`
 2. **tag_chunks** (Claude task) — assigns section tags (`profile`, `financial`, `competitive`, etc.) to each chunk
-3. **build_index.py** — merges chunks + tags into LanceDB table at `artifacts/index/` with vector + FTS indexes
-4. **7 research agents** — query the index via `search_index.py`, use MCP tools (cached by proxy), record findings via `finding-add`
-5. **index_research.py** — reads MCP cache (`mcp-cache.db`) + research findings (`research.db`), chunks/embeds/tags them, appends to existing LanceDB index
+3. **build_index.py** — merges chunks + tags into LanceDB table at `lancedb/index/` with vector + FTS indexes
+4. **7 research agents** — query the index via `search_index.py`, use MCP tools (cached by proxy), write findings to `knowledge/findings_{tag}.md`
+5. **chunk_research.py** → **tag_research** (Claude) → **append_index.py** — chunk/embed research findings, cross-tag, append to LanceDB
 6. **7 writers** — query the unified index via `search_index.py` (one source for all data + research)
 
 **search_index.py** performs hybrid search: vector similarity + BM25 full-text, merged via reciprocal rank fusion. Supports `--sections` filtering and `--top-k` control.
@@ -148,7 +147,7 @@ Text artifacts from data-gathering tasks are processed into a searchable LanceDB
 - **Cache key**: SHA256 of `tool_name|arguments_json`
 - **Requestor tracking**: `requestors` column tracks which research tasks requested each result (via `MCP_TASK_ID` env var)
 - **Schema migration**: automatically adds `requestors` column to existing databases
-- Cache is read by `index_research.py` to index MCP responses into LanceDB
+- Research agents synthesize MCP responses into their findings markdown files
 
 ## Python Coding Conventions
 

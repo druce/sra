@@ -1,4 +1,4 @@
-"""Tests for db.py state commands: status, research-update, var-set/get, findings."""
+"""Tests for db.py state commands: status, research-update, var-set/get."""
 
 from db_test_helpers import run_db, create_artifact_file
 
@@ -128,57 +128,3 @@ def test_var_set_stored_in_task_params(workdir):
     assert params["sets_vars"]["company_name"]["key"] == "company_name"
 
 
-# ---------------------------------------------------------------------------
-# finding-add / finding-list
-# ---------------------------------------------------------------------------
-
-
-def test_finding_add(workdir):
-    rc, out = run_db(
-        "finding-add", "--workdir", str(workdir),
-        "--task-id", "profile",
-        "--content", "NVDA competes with AMD and Intel in discrete GPUs.",
-        "--source", "artifacts/sec_10k_item1.md",
-        "--tags", "competitive", "supply_chain",
-    )
-    assert rc == 0
-    assert out["status"] == "ok"
-    assert "id" in out
-
-
-def test_finding_list_all(workdir):
-    run_db("finding-add", "--workdir", str(workdir),
-           "--task-id", "profile",
-           "--content", "NVDA dominates GPU market.",
-           "--source", "10-K", "--tags", "competitive")
-    run_db("finding-add", "--workdir", str(workdir),
-           "--task-id", "fundamental",
-           "--content", "NVDA revenue grew 120% YoY.",
-           "--source", "income_statement.csv", "--tags", "financial")
-    rc, out = run_db("finding-list", "--workdir", str(workdir))
-    assert rc == 0
-    assert len(out) == 2
-
-
-def test_finding_list_filter_by_tags(workdir):
-    run_db("finding-add", "--workdir", str(workdir),
-           "--task-id", "profile",
-           "--content", "AMD is gaining share in data center.",
-           "--source", "10-K", "--tags", "competitive", "financial")
-    run_db("finding-add", "--workdir", str(workdir),
-           "--task-id", "fundamental",
-           "--content", "Gross margin expanded to 73%.",
-           "--source", "income_statement.csv", "--tags", "financial")
-    rc, out = run_db("finding-list", "--workdir", str(workdir), "--tags", "competitive")
-    assert rc == 0
-    assert len(out) == 1
-    assert "AMD" in out[0]["content"]
-
-
-def test_finding_add_requires_task_id(workdir):
-    rc, out = run_db(
-        "finding-add", "--workdir", str(workdir),
-        "--content", "some content",
-        "--tags", "competitive",
-    )
-    assert rc != 0

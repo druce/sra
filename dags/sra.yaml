@@ -1,6 +1,21 @@
 dag:
   version: 2
   name: Equity Research Report Bot
+  vars:
+    artifact_context: |
+      Information gathered so far is in the artifacts/ subdirectory.
+      Read artifacts/manifest.json for a description of all available files.
+    artifact_context_inline: |
+      Key artifacts are included inline below.
+      Additional files are in artifacts/ — use Read tool for larger files not included inline.
+    research_output_instructions: |
+      Write all your findings to a single markdown document.
+      Structure it with clear ## headings for major topics.
+      Separate distinct findings with --- horizontal rules.
+      Cite sources inline: (Source: Wikipedia), (Source: 10-K Item 1A), (Source: FMP company-profile), etc.
+      Include specific data points: numbers, dates, percentages, dollar amounts.
+      Each finding should be a self-contained paragraph that makes sense without surrounding context
+      (the document will be split into chunks for a search index).
   inputs:
     ticker: "${ticker}"
     workdir: "${workdir}"
@@ -188,6 +203,8 @@ tasks:
     depends_on: [chunk_documents]
     config:
       prompt: |
+        ${artifact_context}
+
         Read lancedb/chunks.json. For each chunk, assign relevance tags from this list:
         profile, business_model, competitive, supply_chain, financial, valuation, risk_news
 
@@ -226,20 +243,33 @@ tasks:
       mcp_config: [mcp-research.json]
       prompt: |
         You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: company profile, history, management, and business overview.
+        Your task is to gather and organize the raw material needed to write
+        an extended narrative company profile including founding story, company
+        history with key milestones and a business overview with recent developments.
+
+        ${artifact_context}
+
+        Ensure you have all key facts for a profile:
+        - Founding date and founder(s)
+        - Major historical milestones, mergers, acquisitions, and pivots
+        - Current products and services, geographical and customer segments.
+        - Business model and revenue streams
+        - Financial metrics
+        - Recent company news
 
         1. Search the artifact index for significant findings relevant to writing a section on company profile, history, management, and business overview:
            Run: uv run python skills/search_index/search_index.py "company history overview management" --workdir ${workdir} --sections profile --top-k 15
 
         2. Use available MCP tools to fill gaps (company profile, executives, Wikipedia).
 
-        3. For each significant finding, record it with:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_profile \
-             --content "<finding>" --source "<source>" --tags profile [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Tag any finding cross-relevant to other sections (e.g. leadership changes → risk_news).
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_profile.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_profile.md", format: md, description: "Research findings on company profile, history, and management"}
 
   research_business:
     sort_order: 21
@@ -249,21 +279,48 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: business model, revenue streams, unit economics, and competitive moat.
+        Your job is to gather and organize raw material — not to write the final analysis yet.
+        Use the tools available to you to collect data for the section on the company's business model.
 
         1. Search the artifact index:
            Run: uv run python skills/search_index/search_index.py "business model revenue streams products segments" --workdir ${workdir} --sections business_model --top-k 15
 
-        2. Use available MCP tools to research revenue breakdown, segment trends, and moat sources.
+        2. Use available data artifacts and MCP tools to research revenue breakdown, segment trends, and moat sources.
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_business \
-             --content "<finding>" --source "<source>" --tags business_model [other_relevant_tags...]
+        Ensure you have all key facts for an analysis of the company's business model:
+          - segment revenue breakdown (revenue by segment, $ and %)
+          - geographic revenue breakdown ($ and %)
+          - YoY growth rates for each segment and geography
+          - named products and services, which segment they belong to, launch date if recent, and any disclosed pricing or subscription terms
+          - any products discontinued or pivoted in the last 12 months
+          - sales/distribution model (direct, dealer, online, channel partners)
+          - revenue types (e.g., hardware sale, subscription, licensing, regulatory credits, services fees)
+          - customer concentration (>10% customers)
+          - Note any disclosed seasonality language from the 10-K MD&A
+          - margins by segment
+          - expenses like R&D, SG&A, COGS, attributable to segments or overhead
+          - capital expenditures
+          - growth drivers, forward guidance as to changes
+          - key ratios and peer comparisons
+          - key moats and competitive advantages
+          - addressable market by segment
+          - capital return strategies
 
-        Tag cross-relevant findings (e.g. margin structure → financial, moat → competitive).
-        Aim for at least 10 substantial findings.
+          sources:
+          - Use searches like "{COMPANY} new product launch {CURRENT_YEAR}" to ensure knowledge is complete
+          - use all the docs, tools and market data services
+
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_business_model.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_business_model.md", format: md, description: "Research findings on business model, revenue streams, and competitive moat"}
 
   research_competitive:
     sort_order: 22
@@ -273,21 +330,38 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: competitive landscape, market share, industry dynamics, and positioning.
+        Your job is to gather and organize raw material — not to write the final analysis yet.
+        Use the tools available to you to collect data for the section on the company's competitive landscape, market share, industry dynamics, and positioning.
 
         1. Search the artifact index:
            Run: uv run python skills/search_index/search_index.py "competitors market share industry landscape" --workdir ${workdir} --sections competitive --top-k 15
 
         2. Use available MCP tools to research competitors, peer financials, and market dynamics.
+        Ensure you have identified all key facts for an analysis of the company's competitive environment:
+        - competitors, their value proposition and their market share
+        - for significant compeitors
+          - Scale: revenue, units sold, or relevant volume metric vs. the subject company
+          - Specific competitive advantage or threat they pose (technology, cost, geography, product lineup etc.)
+          - Recent developments
+          - Any disadvantage, limitation or vulnerability relative to the subject company
+        - emerging, adjacent, and potential competitors, analyze risk for disruption
+        - trends in competitive environment, share, impact on profit margins
+          - Where unit and dollar market share is being gained or lost to whom
+          - Whether the losses are structural (product, brand, price) or cyclical
+          - evidence of overall increase or decrease in competition/pricing power
+          - areas of profit, investment and focus across peers
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_competitive \
-             --content "<finding>" --source "<source>" --tags competitive [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Cross-tag relevant findings to supply_chain, valuation, or risk_news as appropriate.
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_competitive.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_competitive.md", format: md, description: "Research findings on competitive landscape, market share, and industry dynamics"}
 
   research_supply_chain:
     sort_order: 23
@@ -297,6 +371,8 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: supply chain, manufacturing partners, input dependencies, and geopolitical exposure.
 
@@ -305,13 +381,14 @@ tasks:
 
         2. Use available MCP tools to research key suppliers, concentration risk, and geographic exposure.
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_supply_chain \
-             --content "<finding>" --source "<source>" --tags supply_chain [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Cross-tag relevant findings to risk_news or competitive as appropriate.
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_supply_chain.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_supply_chain.md", format: md, description: "Research findings on supply chain, manufacturing, and geopolitical exposure"}
 
   research_financial:
     sort_order: 24
@@ -321,6 +398,8 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: financial performance — revenue growth, margins, cash flow, balance sheet, and key ratios.
 
@@ -329,13 +408,14 @@ tasks:
 
         2. Use available MCP tools to research financial statements, TTM metrics, and trend analysis.
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_financial \
-             --content "<finding>" --source "<source>" --tags financial [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Cross-tag findings relevant to valuation (margins, FCF) or risk_news (debt levels).
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_financial.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_financial.md", format: md, description: "Research findings on financial performance, growth trends, and key metrics"}
 
   research_valuation:
     sort_order: 25
@@ -345,6 +425,8 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: valuation — current multiples, historical ranges, analyst price targets, and DCF inputs.
 
@@ -353,13 +435,14 @@ tasks:
 
         2. Use available MCP tools to research current multiples, analyst consensus, and peer comparisons.
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_valuation \
-             --content "<finding>" --source "<source>" --tags valuation [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Cross-tag findings relevant to financial (FCF yield, EPS growth) or competitive (peer multiples).
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_valuation.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_valuation.md", format: md, description: "Research findings on valuation multiples, analyst targets, and DCF inputs"}
 
   research_risk_news:
     sort_order: 26
@@ -369,6 +452,8 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        ${artifact_context}
+
         You are a research analyst investigating ${company_name} (${symbol}).
         Your domain: key risks, recent news events, regulatory developments, and catalysts.
 
@@ -377,36 +462,79 @@ tasks:
 
         2. Use available MCP tools to research recent material events, risk factors, and regulatory filings.
 
-        3. Record each finding:
-           uv run python skills/db.py finding-add --workdir ${workdir} --task-id research_risk_news \
-             --content "<finding>" --source "<source>" --tags risk_news [other_relevant_tags...]
+        3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
 
-        Cross-tag findings relevant to supply_chain, competitive, or valuation as appropriate.
-        Aim for at least 10 substantial findings.
+        ${research_output_instructions}
+
+        Save your findings to knowledge/findings_risk_news.md
       disallowed_tools: []
+    outputs:
+      findings: {path: "knowledge/findings_risk_news.md", format: md, description: "Research findings on risks, news events, and regulatory developments"}
 
-  # --- Post-research indexing ---
-  index_research:
+  # --- Post-research: chunk, tag, and index research findings ---
+  chunk_research:
     sort_order: 27
-    description: Index MCP responses and research findings into LanceDB
+    description: Chunk and embed research findings for knowledge base
     type: python
     depends_on: [research_profile, research_business, research_competitive,
                  research_supply_chain, research_financial, research_valuation, research_risk_news]
     config:
-      script: skills/chunk_index/index_research.py
+      script: skills/chunk_index/chunk_research.py
+      args:
+        ticker: "${ticker}"
+        workdir: "${workdir}"
+    outputs:
+      chunks: {path: "lancedb/research_chunks.json", format: json, description: "Chunked and embedded research findings"}
+
+  tag_research:
+    sort_order: 28
+    description: Cross-tag research findings chunks with additional section relevance
+    type: claude
+    depends_on: [chunk_research]
+    config:
+      prompt: |
+        Read lancedb/research_chunks.json. Each chunk already has a primary tag from its source file.
+        Your job is to add ADDITIONAL cross-relevant tags only.
+
+        Valid tags: profile, business_model, competitive, supply_chain, financial, valuation, risk_news
+
+        For each chunk, decide if it is relevant to sections BEYOND its primary tag.
+        Examples:
+        - A profile finding about CEO resignation → also tag risk_news
+        - A financial finding about margin compression → also tag competitive, valuation
+        - A supply chain finding about tariff risk → also tag risk_news, financial
+
+        Only add cross-tags when the content would genuinely help a writer in that other section.
+        Do NOT remove existing tags. Output ALL tags (primary + any additions).
+
+        Write to lancedb/research_chunk_tags.json in this exact format:
+        [{"id": "<chunk_id>", "tags": ["primary_tag", "cross_tag_1", ...]}, ...]
+
+        Include every chunk. Do not skip any.
+      disallowed_tools: [WebSearch, WebFetch, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright]
+    outputs:
+      chunk_tags: {path: "lancedb/research_chunk_tags.json", format: json, description: "Cross-tagged research findings chunks"}
+
+  append_index:
+    sort_order: 29
+    description: Append tagged research findings to LanceDB knowledge base
+    type: python
+    depends_on: [tag_research]
+    config:
+      script: skills/chunk_index/append_index.py
       args:
         ticker: "${ticker}"
         workdir: "${workdir}"
     outputs:
       research_index: {path: "lancedb/index/", format: lancedb,
-                       description: "LanceDB index enriched with research MCP responses and findings"}
+                       description: "LanceDB index enriched with cross-tagged research findings"}
 
   # --- Body section writing tasks (Claude subagents, run in parallel) ---
   write_profile:
     sort_order: 30
     description: "Write Section 2: Extended Profile"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -423,6 +551,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "company profile history overview" --workdir ${workdir} --sections profile --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -439,14 +569,31 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 2 of an equity research report on ${ticker}: Extended Profile.
+        1 paragraph executive summary covering: what the company does, its scale (revenue, market cap,
+        employees, geographic footprint), and what makes it an interesting from an investment perspective.
 
-        Cover:
-        • History with origin story and key historical milestones
-        • Core business and competitors
-        • Recent major news
+        ## History and Key Milestones
+        1-3 paragraph narrative origin story: founding circumstances, founders, early vision. Then walk through the
+        critical inflection points — pivots, product launches, IPO, major acquisitions, near-death
+        experiences, and transformative moments — that explain how the company became what it is
+        today. Emphasize events that shaped the current competitive position or business model.
+        Include approximate dates.
 
-        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+        ## Core Business and Investment Highlights
+          Cover in 1-3 paragraphs:
+          - Revenue segments with approximate size and growth trajectory
+          - Primary products/services and what differentiates them
+          - Business model (how the company actually makes money)
+          - Sources of competitive advantage (network effects, switching costs, IP, scale, distribution)
+          - Key metrics investors track (unit economics, margins, retention, utilization, etc.)
+          - The central tension or debate in the investment case (e.g., "priced as X, may become Y")
+
+        ## Recent Developments
+          Cover in 1 paragraph the most significant developments from the past 12 months that materially
+          affect the investment case, such as: financial results, product launches, competitive moves,
+          regulatory events, management changes, and any macro/policy tailwinds or headwinds.
+          Be specific — include figures, dates, and context for why each development matters.
+          Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
         Save results in markdown format to drafts/section_2_profile.md
       n_iterations: 1
@@ -493,7 +640,7 @@ tasks:
     sort_order: 31
     description: "Write Section 3: Business Model"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -510,6 +657,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "business model revenue streams products services" --workdir ${workdir} --sections business_model --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -529,17 +678,40 @@ tasks:
         Write Section 3 of an equity research report on ${ticker}: Business Model.
 
         Cover:
-        • Describe their core businesses, products and services.
-        • Outline their key revenue streams, customer segments, and monetization strategies.
-        • Analyze key characteristics of markets it operates in:
-          - customer acquisition costs
-          - retention metrics
-          - sales cycles
+        • Core businesses, products and services.
+        • Key revenue streams, customer segments, relative importances, and monetization strategies with data.
+        • Recent changes, product launches, discontinuations, or pivots; nascent businesses or option-value segments
+        • Analyze key monetization characteristics of the businesses it operates in:
+          - model: one-time sale, subscription, b2b vs b2c etc.
+          - customer types
+          - customer acquisition and retention dynamics (CAC, sales cycles, switching costs, brand dynamics, distribution model)
           - seasonal or cyclical business patterns
-          - margins, market size, growth trajectory and factors affecting them
-        • Explain sources of competitive advantage such as network effects, switching costs, brands, intellectual property, regulatory moats, and other barriers to entry.
+          - margin structures and dynmaics by segment
+          - market size, addressable size, current share, growth trajectory and factors affecting them
 
-        Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+        • Explain sources of competitive advantage such as
+          - network effects
+          - switching costs
+          - scale
+          - distribution
+          - vertical integration
+          - exclusive relationships
+          - branding
+          - intellectual property
+          - regulatory moats
+          - and other barriers to entry.
+
+        • Growth Drivers and Capital Allocation
+          - Key organic growth vectors (new products, geographies, segments)
+          - Capital expenditure level and stated priorities
+          - Capital structure and expense structure vs. peers
+          - Capital return policy (dividends, buybacks, dilution)
+          - Any M&A strategy or recent transactions
+
+        Use a straightforward, factual tone throughout the analysis.
+        Focus on data, observable facts, and how they compare with competitors.
+        Show trends in revenues, margins, and key financial metrics using tables.
+        Analyse dynamics, margin trade-offs, cannibalization, concentration risks.
 
         Save results in markdown format to drafts/section_3_business_model.md
       n_iterations: 1
@@ -586,7 +758,7 @@ tasks:
     sort_order: 32
     description: "Write Section 4: Competitive Landscape"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -603,6 +775,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "competitors market share competitive landscape" --workdir ${workdir} --sections competitive --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -672,7 +846,7 @@ tasks:
     sort_order: 33
     description: "Write Section 5: Supply Chain Positioning"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -689,6 +863,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "supply chain suppliers manufacturing dependencies" --workdir ${workdir} --sections supply_chain --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -758,7 +934,7 @@ tasks:
     sort_order: 34
     description: "Write Section 6: Financial and Operating Leverage"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -775,6 +951,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "financial leverage margins cash flow capital allocation" --workdir ${workdir} --sections financial --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -846,7 +1024,7 @@ tasks:
     sort_order: 35
     description: "Write Section 7: Valuation"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -863,6 +1041,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "valuation P/E EV/EBITDA price target DCF multiples" --workdir ${workdir} --sections valuation --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -884,7 +1064,7 @@ tasks:
         Cover:
         • Identify appropriate valuation methodologies, including income-based (e.g., DCF), asset-based (e.g. book value and sum of parts), market-based (e.g. peer multiples and comparisons), and LBO analysis
         • Highlight important valuation inputs and metrics (growth rates, margins, discount rates, terminal value assumptions).
-        • Summarize current ratings and analyst opinions, including recent changes.
+        • Summarize current ratings and analyst opinions, including recent changes. Note if the stock is widely covered and whether opinions are polarized or clustered around a consensus.
         • Note the stock's volatility, liquidity, if it is widely covered and owned, if it is a hedge fund story stock or meme stock, what macro factors it is sensitive to
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
@@ -934,7 +1114,7 @@ tasks:
     sort_order: 36
     description: "Write Section 8: Recent Developments, News Search and Risk Factors"
     type: claude
-    depends_on: [index_research]
+    depends_on: [append_index]
     config:
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
@@ -951,6 +1131,8 @@ tasks:
         - artifacts/news_stories.md
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Before writing, search the unified research index for all relevant material:
           Run: uv run python skills/search_index/search_index.py "risks regulatory news events catalysts developments" --workdir ${workdir} --sections risk_news --top-k 25
         This index contains all data artifacts, MCP research responses, and research findings.
@@ -1056,6 +1238,8 @@ tasks:
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
       prompt: |
+        ${artifact_context_inline}
+
         read the report body at artifacts/assembled_body.md carefully and write a concluding 1-3 short paragraphs < 500 words total.
             • Summarize the company's strategic position and the stock's investment risk/reward profile
             • Do not repeat at length but draw on the most salient points from the report body: SWOT, bull/bear cases, risk assessment, and monitoring watchpoints.
@@ -1078,6 +1262,8 @@ tasks:
         - artifacts/manifest.json
         - artifacts/profile.json
       prompt: |
+        ${artifact_context_inline}
+
         read the report body at artifacts/assembled_body.md and the conclusion at artifacts/conclusion.md carefully, then write a short introductory paragraph < 100 words.
 
         Use a straightforward, factual tone throughout the analysis.
@@ -1119,9 +1305,20 @@ tasks:
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Read the assembled report text at artifacts/report_body.md carefully and provide a detailed critique.
 
         Evaluate the report for:
+        - Following the structure exactly, with these exact numbered headings and no missing sections
+          - 1. Introduction
+          - 2. Company Profile
+          - 3. Business Model
+          - 4. Competitive Landscape
+          - 5. Supply Chain Positioning
+          - 6. Financial Profile
+          - 7. Risks
+          - 8. Investment Thesis and Conclusion
         - Clarity and readability
         - Repetition; similar details and points should not be repeated in different sections. As an example, early summary sections and later concluding sections can REFER to e.g. supply chain issues but SHOULD NOT detail at length the same issues discussed comprehensively in the supply chain part of the report.
         - Factual accuracy and consistency
@@ -1158,6 +1355,8 @@ tasks:
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
       prompt: |
+        ${artifact_context_inline}
+
         Read the critique at artifacts/report_critique.md and the current report text at artifacts/report_body.md.
 
         Carefully address each issue identified in the critique:
