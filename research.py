@@ -7,13 +7,14 @@ async subprocesses. Python tasks via `uv run python`, Claude tasks via
 `claude --dangerously-skip-permissions -p`.
 
 Usage:
-    ./research.py TICKER [--dag dags/sra.yaml] [--date YYYYMMDD]
+    ./research.py TICKER [--dag dags/sra.yaml] [--date YYYYMMDD] [--clean]
 """
 
 import argparse
 import asyncio
 import json
 import os
+import re
 import shutil
 import sys
 from datetime import datetime
@@ -32,6 +33,10 @@ from utils import substitute_vars as _substitute_vars  # noqa: E402
 
 DB_PY = Path(__file__).parent / "skills" / "db.py"
 _PROJECT_ROOT = Path(__file__).parent
+
+# Default timeout (seconds) for Claude subprocess tasks.
+# Tasks with MCP tools can hang indefinitely on unresponsive servers.
+CLAUDE_TASK_TIMEOUT = 1200  # 20 minutes
 
 
 _PROXY_SCRIPT = str(_PROJECT_ROOT / "skills" / "mcp_proxy" / "mcp_proxy.py")
@@ -225,6 +230,178 @@ async def run_python_task(task: dict, workdir: Path, ticker: str) -> dict:
     }
 
 
+def run_hard_checks(file_path: Path, checks: list[str]) -> list[dict]:
+    """Run programmatic hard checks against a file's content.
+
+    Each check is a string with format 'rule: value'. Returns a list of
+    dicts with keys: check, passed, message.
+    """
+    content = file_path.read_text()
+    results = []
+
+    for check in checks:
+        sep = ": "
+        idx = check.find(sep)
+        if idx == -1:
+            results.append({"check": check, "passed": False, "message": f"Malformed check (no ': ' separator): {check}"})
+            continue
+        rule = check[:idx].strip()
+        value = check[idx + len(sep):]
+
+        if rule == "min_length":
+            threshold = int(value)
+            passed = len(content) >= threshold
+            results.append({
+                "check": check,
+                "passed": passed,
+                "message": f"Content length {len(content)} >= {threshold}" if passed
+                    else f"Content length {len(content)} is below minimum {threshold}",
+            })
+        elif rule == "max_length":
+            threshold = int(value)
+            passed = len(content) <= threshold
+            results.append({
+                "check": check,
+                "passed": passed,
+                "message": f"Content length {len(content)} <= {threshold}" if passed
+                    else f"Content length {len(content)} exceeds maximum {threshold}",
+            })
+        elif rule == "startswith":
+            first_line = ""
+            for line in content.splitlines():
+                if line.strip():
+                    first_line = line
+                    break
+            passed = first_line.startswith(value)
+            results.append({
+                "check": check,
+                "passed": passed,
+                "message": f"First line starts with '{value}'" if passed
+                    else f"First non-blank line is: '{first_line[:80]}' — expected to start with '{value}'",
+            })
+        elif rule == "contains":
+            passed = value in content
+            results.append({
+                "check": check,
+                "passed": passed,
+                "message": f"Content contains '{value}'" if passed
+                    else f"Content does not contain '{value}'",
+            })
+        elif rule == "regex":
+            passed = bool(re.search(value, content, re.MULTILINE))
+            results.append({
+                "check": check,
+                "passed": passed,
+                "message": f"Regex '{value}' matched" if passed
+                    else f"Regex '{value}' did not match anywhere in content",
+            })
+        else:
+            results.append({"check": check, "passed": False, "message": f"Unknown check rule: {rule}"})
+
+    return results
+
+
+def write_hard_critique(workdir: Path, stem: str, iteration: int, failures: list[dict]) -> str:
+    """Write a hard check failure critique file. Returns workdir-relative path."""
+    drafts_dir = workdir / "drafts"
+    drafts_dir.mkdir(exist_ok=True)
+
+    critique_path = f"drafts/{stem}_hard_critic_{iteration}.md"
+    lines = ["HARD CHECK FAILURES — fix these issues in the rewrite:\n"]
+    for i, f in enumerate(failures, 1):
+        lines.append(f"{i}. FAIL: {f['check']}")
+        lines.append(f"   {f['message']}")
+        # Add actionable guidance
+        check = f["check"]
+        sep_idx = check.find(": ")
+        if sep_idx != -1:
+            rule = check[:sep_idx].strip()
+            value = check[sep_idx + 2:]
+            if rule == "startswith":
+                lines.append(f"   Action: Ensure the very first line of the document is: {value}")
+            elif rule == "min_length":
+                lines.append(f"   Action: Expand the analysis to meet the minimum length of {value} characters.")
+            elif rule == "max_length":
+                lines.append(f"   Action: Trim the content to stay under {value} characters.")
+            elif rule == "contains":
+                lines.append(f"   Action: Include the text '{value}' somewhere in the document.")
+            elif rule == "regex":
+                lines.append(f"   Action: Ensure the content matches the pattern: {value}")
+        lines.append("")
+
+    (workdir / critique_path).write_text("\n".join(lines))
+    log(f"  Hard critique written to {critique_path}")
+    return critique_path
+
+
+async def _run_hard_check_rewrite(
+    workdir: Path, task: dict, params: dict,
+    stem: str, suffix: str, draft_path: str,
+    hard_checks_list: list[str], hard_check_retries: int,
+    primary_output: dict, rewrite_prompt_template: str,
+    task_mcp_config, task_extra_env, task_timeout: int,
+    label_prefix: str = "hard",
+) -> tuple[str, list[dict], int]:
+    """Run hard check → rewrite loop. Returns (draft_path, final_failures, retries_used)."""
+    failures = run_hard_checks(workdir / primary_output["path"], hard_checks_list)
+    hard_retry_count = 0
+
+    while any(not f["passed"] for f in failures) and hard_retry_count < hard_check_retries:
+        hard_retry_count += 1
+        failed = [f for f in failures if not f["passed"]]
+        log(f"  [{task['id']}] Hard check failures ({len(failed)}), retry {hard_retry_count}/{hard_check_retries}")
+
+        # Write critique
+        critique_path = write_hard_critique(workdir, stem, hard_retry_count, failed)
+
+        # Rewrite
+        rewrite_path = f"drafts/{stem}_{label_prefix}_v{hard_retry_count}{suffix}"
+        rewrite_prompt = (
+            rewrite_prompt_template
+            .replace("${draft_path}", draft_path)
+            .replace("${critique_path}", critique_path)
+            .replace("${rewrite_path}", rewrite_path)
+        )
+        rewrite_outputs = {
+            f"{label_prefix}_rewrite_{hard_retry_count}": {
+                "path": rewrite_path,
+                "format": primary_output["format"],
+            }
+        }
+
+        rewrite_result = await _invoke_claude(
+            prompt=rewrite_prompt,
+            workdir=workdir,
+            task_id=task["id"],
+            step_label=f"{label_prefix}_rewrite_{hard_retry_count}",
+            disallowed_tools=params.get("rewrite_disallowed_tools") or None,
+            system=params.get("system"),
+            model=params.get("rewrite_model") or params.get("model"),
+            max_budget_usd=params.get("max_budget_usd"),
+            expected_outputs=rewrite_outputs,
+            artifacts_inline=None,
+            mcp_config=task_mcp_config,
+            extra_env=task_extra_env,
+            timeout=task_timeout,
+        )
+
+        if rewrite_result["status"] != "complete":
+            log(f"  [{task['id']}] Hard check rewrite failed: {rewrite_result['error']}")
+            break
+
+        # Publish rewrite to artifacts
+        rewrite_file = workdir / rewrite_path
+        artifact_file = workdir / primary_output["path"]
+        if rewrite_file.exists():
+            shutil.copy2(str(rewrite_file), str(artifact_file))
+            log(f"  [{task['id']}] Published {rewrite_path} -> {primary_output['path']}")
+
+        draft_path = rewrite_path
+        failures = run_hard_checks(workdir / primary_output["path"], hard_checks_list)
+
+    return draft_path, failures, hard_retry_count
+
+
 async def run_claude_task(task: dict, workdir: Path) -> dict:
     """Run a claude task via claude CLI. Return result dict."""
     params = task["params"]
@@ -234,16 +411,19 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
     n_iterations = params.get("n_iterations", 0)
     critic_prompt_template = params.get("critic_prompt")
     rewrite_prompt_template = params.get("rewrite_prompt")
+    hard_checks_list = params.get("hard_checks", [])
+    hard_check_retries = params.get("hard_check_retries", 2)
     has_critic_loop = (
         n_iterations > 0
         and critic_prompt_template
         and rewrite_prompt_template
         and outputs
     )
+    has_drafts_flow = has_critic_loop or (hard_checks_list and rewrite_prompt_template and outputs)
 
-    # For tasks with critic loop, initial write goes to drafts/
+    # For tasks with critic loop or hard checks, initial write goes to drafts/
     # The prompt instructs Claude to save there; expected_outputs must match
-    if has_critic_loop:
+    if has_drafts_flow:
         primary_name = next(iter(outputs.keys()))
         primary_output = outputs[primary_name]
         primary_path = Path(primary_output["path"])
@@ -264,6 +444,7 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
     task_extra_env = {"MCP_CACHE_WORKDIR": str(workdir), "MCP_TASK_ID": task["id"]} if task_mcp_config else None
 
     # Step 1: Initial write
+    task_timeout = params.get("timeout") or CLAUDE_TASK_TIMEOUT
     result = await _invoke_claude(
         prompt=params["prompt"],
         workdir=workdir,
@@ -277,6 +458,7 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
         artifacts_inline=params.get("artifacts_inline") or None,
         mcp_config=task_mcp_config,
         extra_env=task_extra_env,
+        timeout=task_timeout,
     )
 
     if result["status"] != "complete":
@@ -288,8 +470,8 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
             "manifest": None,
         }
 
-    # Step 2: Critic-optimizer loop (if configured)
-    if has_critic_loop:
+    # Step 2: Drafts flow (critic loop and/or hard checks)
+    if has_drafts_flow:
         # Publish initial write: drafts/ -> artifacts/
         src = workdir / draft_write_path
         dst = workdir / primary_output["path"]
@@ -309,93 +491,142 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
         log(f"  [{task['id']}] Copied initial write to {v0_path}")
         draft_path = v0_path
 
-        for i in range(1, n_iterations + 1):
-            log(f"  [{task['id']}] Critic-optimizer iteration {i}/{n_iterations}")
-
-            # --- Critic step ---
-            critique_path = f"drafts/{stem}_critic_{i}{suffix}"
-            critic_prompt = (
-                critic_prompt_template
-                .replace("${draft_path}", draft_path)
-                .replace("${critique_path}", critique_path)
+        # Step 2a: Hard checks on initial write (before critic loop)
+        hard_retries_used = 0
+        if hard_checks_list:
+            log(f"  [{task['id']}] Running hard checks on initial write")
+            draft_path, pre_failures, hard_retries_used = await _run_hard_check_rewrite(
+                workdir=workdir, task=task, params=params,
+                stem=stem, suffix=suffix, draft_path=draft_path,
+                hard_checks_list=hard_checks_list, hard_check_retries=hard_check_retries,
+                primary_output=primary_output, rewrite_prompt_template=rewrite_prompt_template,
+                task_mcp_config=task_mcp_config, task_extra_env=task_extra_env,
+                task_timeout=task_timeout, label_prefix="hard_pre",
             )
-            critic_outputs = {
-                f"critic_{i}": {"path": critique_path, "format": primary_output["format"]}
-            }
+            pre_passed = all(f["passed"] for f in pre_failures)
+            if pre_passed:
+                log(f"  [{task['id']}] All hard checks passed")
+            else:
+                failed_names = [f["check"] for f in pre_failures if not f["passed"]]
+                log(f"  [{task['id']}] Hard checks still failing after {hard_retries_used} retries: {failed_names}")
 
-            log(f"  [{task['id']}] Running critic {i}/{n_iterations}")
-            critic_result = await _invoke_claude(
-                prompt=critic_prompt,
-                workdir=workdir,
-                task_id=task["id"],
-                step_label=f"critic_{i}",
-                disallowed_tools=params.get("critic_disallowed_tools") or None,
-                system=params.get("system"),
-                model=params.get("critic_model") or params.get("model"),
-                max_budget_usd=params.get("max_budget_usd"),
-                expected_outputs=critic_outputs,
-                artifacts_inline=params.get("artifacts_inline") or None,
-                mcp_config=task_mcp_config,
-                extra_env=task_extra_env,
-            )
+        # Step 2b: Critic-optimizer loop (if configured)
+        if has_critic_loop:
+            for i in range(1, n_iterations + 1):
+                log(f"  [{task['id']}] Critic-optimizer iteration {i}/{n_iterations}")
 
-            if critic_result["status"] != "complete":
-                return {
-                    "task_id": task["id"],
-                    "status": "failed",
-                    "error": f"Critic iteration {i} failed: {critic_result['error']}",
-                    "artifacts": primary_artifacts,
-                    "manifest": None,
+                # --- Critic step ---
+                critique_path = f"drafts/{stem}_critic_{i}{suffix}"
+                critic_prompt = (
+                    critic_prompt_template
+                    .replace("${draft_path}", draft_path)
+                    .replace("${critique_path}", critique_path)
+                )
+                critic_outputs = {
+                    f"critic_{i}": {"path": critique_path, "format": primary_output["format"]}
                 }
 
-            # --- Rewrite step ---
-            rewrite_path = f"drafts/{stem}_v{i}{suffix}"
-            rewrite_prompt = (
-                rewrite_prompt_template
-                .replace("${draft_path}", draft_path)
-                .replace("${critique_path}", critique_path)
-                .replace("${rewrite_path}", rewrite_path)
-            )
-            rewrite_outputs = {
-                f"rewrite_{i}": {"path": rewrite_path, "format": primary_output["format"]}
-            }
+                log(f"  [{task['id']}] Running critic {i}/{n_iterations}")
+                critic_result = await _invoke_claude(
+                    prompt=critic_prompt,
+                    workdir=workdir,
+                    task_id=task["id"],
+                    step_label=f"critic_{i}",
+                    disallowed_tools=params.get("critic_disallowed_tools") or None,
+                    system=params.get("system"),
+                    model=params.get("critic_model") or params.get("model"),
+                    max_budget_usd=params.get("max_budget_usd"),
+                    expected_outputs=critic_outputs,
+                    artifacts_inline=None,
+                    mcp_config=task_mcp_config,
+                    extra_env=task_extra_env,
+                    timeout=task_timeout,
+                )
 
-            log(f"  [{task['id']}] Running rewrite {i}/{n_iterations}")
-            rewrite_result = await _invoke_claude(
-                prompt=rewrite_prompt,
-                workdir=workdir,
-                task_id=task["id"],
-                step_label=f"rewrite_{i}",
-                disallowed_tools=params.get("rewrite_disallowed_tools") or None,
-                system=params.get("system"),
-                model=params.get("rewrite_model") or params.get("model"),
-                max_budget_usd=params.get("max_budget_usd"),
-                expected_outputs=rewrite_outputs,
-                artifacts_inline=params.get("artifacts_inline") or None,
-                mcp_config=task_mcp_config,
-                extra_env=task_extra_env,
-            )
+                if critic_result["status"] != "complete":
+                    return {
+                        "task_id": task["id"],
+                        "status": "failed",
+                        "error": f"Critic iteration {i} failed: {critic_result['error']}",
+                        "artifacts": primary_artifacts,
+                        "manifest": None,
+                    }
 
-            if rewrite_result["status"] != "complete":
-                return {
-                    "task_id": task["id"],
-                    "status": "failed",
-                    "error": f"Rewrite iteration {i} failed: {rewrite_result['error']}",
-                    "artifacts": primary_artifacts,
-                    "manifest": None,
+                # --- Rewrite step ---
+                rewrite_path = f"drafts/{stem}_v{i}{suffix}"
+                rewrite_prompt = (
+                    rewrite_prompt_template
+                    .replace("${draft_path}", draft_path)
+                    .replace("${critique_path}", critique_path)
+                    .replace("${rewrite_path}", rewrite_path)
+                )
+                rewrite_outputs = {
+                    f"rewrite_{i}": {"path": rewrite_path, "format": primary_output["format"]}
                 }
 
-            # Publish: copy rewrite to artifacts (overwrite primary output)
-            rewrite_file = workdir / rewrite_path
-            original_file = workdir / primary_output["path"]
-            if rewrite_file.exists():
-                shutil.copy2(str(rewrite_file), str(original_file))
-                log(f"  [{task['id']}] Published {rewrite_path} -> {primary_output['path']}")
+                log(f"  [{task['id']}] Running rewrite {i}/{n_iterations}")
+                rewrite_result = await _invoke_claude(
+                    prompt=rewrite_prompt,
+                    workdir=workdir,
+                    task_id=task["id"],
+                    step_label=f"rewrite_{i}",
+                    disallowed_tools=params.get("rewrite_disallowed_tools") or None,
+                    system=params.get("system"),
+                    model=params.get("rewrite_model") or params.get("model"),
+                    max_budget_usd=params.get("max_budget_usd"),
+                    expected_outputs=rewrite_outputs,
+                    artifacts_inline=None,
+                    mcp_config=task_mcp_config,
+                    extra_env=task_extra_env,
+                    timeout=task_timeout,
+                )
 
-            # Update draft_path for next iteration
-            draft_path = rewrite_path
+                if rewrite_result["status"] != "complete":
+                    return {
+                        "task_id": task["id"],
+                        "status": "failed",
+                        "error": f"Rewrite iteration {i} failed: {rewrite_result['error']}",
+                        "artifacts": primary_artifacts,
+                        "manifest": None,
+                    }
+
+                # Publish: copy rewrite to artifacts (overwrite primary output)
+                rewrite_file = workdir / rewrite_path
+                original_file = workdir / primary_output["path"]
+                if rewrite_file.exists():
+                    shutil.copy2(str(rewrite_file), str(original_file))
+                    log(f"  [{task['id']}] Published {rewrite_path} -> {primary_output['path']}")
+
+                # Update draft_path for next iteration
+                draft_path = rewrite_path
+
+        # Step 2c: Hard checks on final output (after critic loop)
+        if hard_checks_list:
+            remaining_retries = hard_check_retries - hard_retries_used
+            if remaining_retries > 0:
+                log(f"  [{task['id']}] Running final hard checks ({remaining_retries} retries remaining)")
+                draft_path, post_failures, post_retries = await _run_hard_check_rewrite(
+                    workdir=workdir, task=task, params=params,
+                    stem=stem, suffix=suffix, draft_path=draft_path,
+                    hard_checks_list=hard_checks_list, hard_check_retries=remaining_retries,
+                    primary_output=primary_output, rewrite_prompt_template=rewrite_prompt_template,
+                    task_mcp_config=task_mcp_config, task_extra_env=task_extra_env,
+                    task_timeout=task_timeout, label_prefix="hard_post",
+                )
+                post_passed = all(f["passed"] for f in post_failures)
+                if post_passed:
+                    log(f"  [{task['id']}] All final hard checks passed")
+                else:
+                    failed_names = [f["check"] for f in post_failures if not f["passed"]]
+                    log(f"  [{task['id']}] WARNING: Hard checks still failing after all retries: {failed_names}")
+            else:
+                # No retries left, just report final status
+                final_failures = run_hard_checks(workdir / primary_output["path"], hard_checks_list)
+                if not all(f["passed"] for f in final_failures):
+                    failed_names = [f["check"] for f in final_failures if not f["passed"]]
+                    log(f"  [{task['id']}] WARNING: Hard checks still failing (no retries left): {failed_names}")
     else:
-        # No critic loop — artifacts come directly from the write result
+        # No critic loop or hard checks — artifacts come directly from the write result
         primary_artifacts = list(result["artifacts"])
 
     return {
@@ -596,6 +827,10 @@ def parse_args() -> argparse.Namespace:
         help="Date string YYYYMMDD (default: today)",
     )
     parser.add_argument(
+        "--clean", action="store_true",
+        help="Remove existing workdir before starting (for re-runs)",
+    )
+    parser.add_argument(
         "--resume", action="store_true",
         help="Resume an existing run (skip init, reset interrupted tasks)",
     )
@@ -725,6 +960,14 @@ async def main() -> int:
             conn.close()
     else:
         log(f"Starting research pipeline for {ticker}")
+
+        # --clean: remove existing workdir for a fresh re-run
+        if args.clean:
+            candidate = Path("work") / f"{ticker}_{args.date}"
+            if candidate.exists():
+                log(f"Removing existing workdir: {candidate}")
+                shutil.rmtree(candidate)
+
         try:
             workdir = await init_pipeline(ticker, args.dag, args.date)
         except RuntimeError as e:

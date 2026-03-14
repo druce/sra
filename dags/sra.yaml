@@ -242,9 +242,13 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
-        You are a research analyst investigating ${company_name} (${symbol}).
+        You are an investigative business journalist specializing in corporate histories
+        and leadership profiles. You focus on the narrative arc of companies — founding
+        stories, pivotal decisions, leadership transitions, and the cultural DNA that
+        shapes strategy. You investigate ${company_name} (${symbol}).
+
         Your task is to gather and organize the raw material needed to write
-        an extended narrative company profile including founding story, company
+        an extended narrative company profile, including founding story, company
         history with key milestones and a business overview with recent developments.
 
         ${artifact_context}
@@ -257,13 +261,28 @@ tasks:
         - Financial metrics
         - Recent company news
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
-           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology
+        (synonyms, related concepts). For example, "founding story" might also be searched
+        as "company history origin", "when was {company} founded", "founder background".
+        This ensures comprehensive retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to fill them (company profile, executives, news, etc.).
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -280,42 +299,59 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a management consultant specializing in business model analysis and
+        unit economics. You evaluate how companies create, deliver, and capture value —
+        revenue architecture, cost structures, pricing power, and scalability.
+        You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        a business model analysis, including revenue streams, segment breakdown,
+        competitive moat, and growth drivers.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your job is to gather and organize raw material — not to write the final analysis yet.
-        Use the tools available to you to collect data for the section on the company's business model.
+        Ensure you have all key facts for an analysis of the company's business model:
+        - Segment revenue breakdown (revenue by segment, $ and %)
+        - Geographic revenue breakdown ($ and %)
+        - Addressable market by geography and segment, headroom for growth
+        - YoY growth rates for each segment and geography
+        - Named products and services, which segment they belong to, launch date if recent, and any disclosed pricing or subscription terms
+        - Any products discontinued or pivoted in the last 12 months; upcoming product pipeline
+        - Sales/distribution model (direct, dealer, online, channel partners)
+        - Revenue types (e.g., hardware sale, subscription, licensing, regulatory credits, services fees)
+        - Customer concentration (>10% customers)
+        - Disclosed seasonality language from the 10-K MD&A
+        - Margins by segment
+        - Expenses like R&D, SG&A, COGS, attributable to segments or overhead
+        - Capital expenditures
+        - Growth drivers, product pipeline, and forward guidance as to changes
+        - Key ratios and peer comparisons
+        - Key moats and competitive advantages
+        - Capital return strategies, M&A opportunities.
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
-           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "revenue breakdown" might also be searched as "segment performance",
+        "business unit revenue", "product line sales". This ensures comprehensive
+        retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to research revenue breakdown, segment trends, and moat sources.
-
-        Ensure you have all key facts for an analysis of the company's business model:
-          - segment revenue breakdown (revenue by segment, $ and %)
-          - geographic revenue breakdown ($ and %)
-          - YoY growth rates for each segment and geography
-          - named products and services, which segment they belong to, launch date if recent, and any disclosed pricing or subscription terms
-          - any products discontinued or pivoted in the last 12 months
-          - sales/distribution model (direct, dealer, online, channel partners)
-          - revenue types (e.g., hardware sale, subscription, licensing, regulatory credits, services fees)
-          - customer concentration (>10% customers)
-          - Note any disclosed seasonality language from the 10-K MD&A
-          - margins by segment
-          - expenses like R&D, SG&A, COGS, attributable to segments or overhead
-          - capital expenditures
-          - growth drivers, forward guidance as to changes
-          - key ratios and peer comparisons
-          - key moats and competitive advantages
-          - addressable market by segment
-          - capital return strategies
-
-          sources:
-          - Use searches like "{COMPANY} new product launch {CURRENT_YEAR}" to ensure knowledge is complete
-          - use all the docs, tools and market data services
+          Use searches like "{COMPANY} new product launch {CURRENT_YEAR}" to ensure knowledge is complete.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -332,32 +368,55 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a strategy consultant with deep expertise in competitive dynamics,
+        market structure, and Porter's Five Forces analysis. You evaluate industries
+        through the lens of market share shifts, barriers to entry, and sustainable
+        competitive advantages. You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        a competitive landscape analysis, including market share, industry dynamics,
+        and competitive positioning.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your job is to gather and organize raw material — not to write the final analysis yet.
-        Use the tools available to you to collect data for the section on the company's competitive landscape, market share, industry dynamics, and positioning.
-
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
-           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
-
-        2. Identify gaps in the existing material, then use MCP tools to research competitors, peer financials, and market dynamics.
-        Ensure you have identified all key facts for an analysis of the company's competitive environment:
-        - competitors, their value proposition and their market share
-        - for significant compeitors
+        Ensure you have all key facts for an analysis of the company's competitive environment:
+        - Competitors, their value proposition and their market share
+        - For significant competitors:
           - Scale: revenue, units sold, or relevant volume metric vs. the subject company
           - Specific competitive advantage or threat they pose (technology, cost, geography, product lineup etc.)
-          - Recent developments
+          - Differences vs. competitors in product lineup, and competitiveness in individual major products and segments.
+          - Potential changes with upcoming products.
           - Any disadvantage, limitation or vulnerability relative to the subject company
-        - emerging, adjacent, and potential competitors, analyze risk for disruption
-        - trends in competitive environment, share, impact on profit margins
+        - Emerging, adjacent, and potential competitors, analyze risk for disruption
+        - Trends in competitive environment, share, impact on profit margins
           - Where unit and dollar market share is being gained or lost to whom
           - Whether the losses are structural (product, brand, price) or cyclical
-          - evidence of overall increase or decrease in competition/pricing power
-          - areas of profit, investment and focus across peers
+          - Evidence of overall increase or decrease in competition/pricing power
+          - Areas of profit, investment and focus across peers
+
+
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "market share" might also be searched as "competitive position",
+        "industry ranking", "revenue comparison peers". This ensures comprehensive
+        retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
+
+        2. Identify gaps in the existing material, then use MCP tools to research competitors, peer financials, and market dynamics.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -374,18 +433,51 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a supply chain analyst with expertise in manufacturing, logistics,
+        procurement, and trade policy. You evaluate vendor dependencies, geographic
+        concentration risk, inventory strategies, and the operational resilience of
+        industrial value chains. You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        a supply chain analysis, including manufacturing partners, input dependencies,
+        and geopolitical exposure.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: supply chain, manufacturing partners, input dependencies, and geopolitical exposure.
+        Ensure you have all key facts for an analysis of the company's supply chain:
+        - Key suppliers and manufacturing partners
+        - Input dependencies (raw materials, components, critical inputs)
+        - Supplier concentration risk (single-source or limited-source dependencies)
+        - Geographic exposure of supply chain (countries, regions, trade route risks)
+        - Geopolitical risks (tariffs, sanctions, trade restrictions, political instability)
+        - Logistics and distribution infrastructure
+        - Inventory management approach and working capital implications
+        - Recent supply chain disruptions or changes
+        - Vertical integration vs. outsourcing decisions
+        - Downstream distribution channels and customer dependencies
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
-           Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "supplier concentration" might also be searched as "vendor dependency",
+        "single source risk", "procurement partners". This ensures comprehensive
+        retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, Wikipedia, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to research key suppliers, concentration risk, and geographic exposure.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -402,18 +494,51 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a forensic accountant and financial analyst specializing in earnings
+        quality, cash flow analysis, and balance sheet forensics. You scrutinize
+        financial statements for red flags, non-recurring items, aggressive accounting,
+        and operating leverage dynamics. You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        a financial analysis, including revenue growth, margins, cash flow,
+        balance sheet strength, and key financial ratios.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: financial performance — revenue growth, margins, cash flow, balance sheet, and key ratios.
+        Ensure you have all key facts for an analysis of the company's financial performance:
+        - Revenue trends (3-5 year history, YoY growth rates, organic vs. inorganic)
+        - Margin analysis (gross, operating, net — trends and drivers of change)
+        - Cash flow generation (operating, free cash flow, conversion ratio)
+        - Balance sheet strength (cash, debt levels, leverage ratios, credit ratings)
+        - Working capital dynamics (DSO, DIO, DPO, cash conversion cycle)
+        - Key financial ratios vs. peers (ROE, ROA, ROIC, asset turnover)
+        - Capital expenditure levels and trends
+        - Earnings quality (accruals, one-time items, adjustments)
+        - TTM and forward estimates vs. historical performance
+        - Segment-level financial performance where available
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
-           Review these results carefully — this is what we already have from SEC filings, financial data, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "cash flow generation" might also be searched as "free cash flow",
+        "operating cash flow conversion", "capital expenditure vs depreciation".
+        This ensures comprehensive retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, financial data, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to research financial statements, TTM metrics, and trend analysis.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -430,18 +555,52 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a valuation specialist with experience in investment banking and
+        equity research. You build DCF models, analyze comparable company multiples,
+        and assess the gap between market pricing and intrinsic value. You are
+        skilled at identifying what assumptions are priced in and where the market
+        may be wrong. You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        a valuation analysis, including current multiples, historical ranges,
+        analyst price targets, and DCF inputs.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: valuation — current multiples, historical ranges, analyst price targets, and DCF inputs.
+        Ensure you have all key facts for an analysis of the company's valuation:
+        - Current valuation multiples (P/E, P/S, P/B, EV/EBITDA, EV/Revenue, PEG)
+        - Historical valuation ranges (3-5 year highs, lows, averages for key multiples)
+        - Peer comparison multiples (same metrics for direct competitors)
+        - Analyst price targets (low, mean, median, high, number of analysts)
+        - Analyst rating distribution (buy/hold/sell counts, recent changes)
+        - DCF inputs (growth assumptions, margin trajectory, WACC components, terminal value)
+        - Sum-of-the-parts considerations if applicable
+        - Forward estimates (revenue, EPS) and implied growth rates
+        - Premium/discount drivers vs. peers (growth, quality, risk profile)
+        - Recent valuation shifts and catalysts driving re-rating
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
-           Review these results carefully — this is what we already have from financial data, analyst estimates, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "analyst price targets" might also be searched as "consensus estimate",
+        "Wall Street rating", "buy sell recommendation". This ensures comprehensive
+        retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from financial data, analyst estimates, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to research current multiples, analyst consensus, and peer comparisons.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -458,18 +617,52 @@ tasks:
     config:
       mcp_config: [mcp-research.json]
       prompt: |
+        You are a compliance officer and risk analyst with experience in regulatory
+        affairs, litigation analysis, and enterprise risk management. You identify
+        material risks that are underappreciated by the market, assess probability
+        and severity of adverse scenarios, and track catalysts that could trigger
+        re-pricing. You investigate ${company_name} (${symbol}).
+
+        Your task is to gather and organize the raw material needed to write
+        an analysis of key risks, recent news events, regulatory developments,
+        and upcoming catalysts.
+
         ${artifact_context}
 
-        You are a research analyst investigating ${company_name} (${symbol}).
-        Your domain: key risks, recent news events, regulatory developments, and catalysts.
+        Ensure you have all key facts for an analysis of risks and recent developments:
+        - Recent material news events (earnings, product launches, leadership changes)
+        - Regulatory actions, investigations, or compliance issues
+        - Legal proceedings, litigation, and contingent liabilities
+        - Operational risks (technology, cybersecurity, execution, key person dependency)
+        - Financial risks (liquidity, credit, currency, interest rate exposure)
+        - Market and competitive risks (disruption, commoditization, demand shifts)
+        - Geopolitical and macroeconomic risks (trade policy, sanctions, recession sensitivity)
+        - ESG and reputational risks
+        - Upcoming catalysts (earnings dates, product launches, regulatory decisions, contract renewals)
+        - Recent analyst rating changes and sentiment shifts
 
-        1. Retrieve everything already indexed for this section:
-           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
-           Review these results carefully — this is what we already have from SEC filings, news, and other ingested sources.
+        **Step 0: Decompose your research brief into specific questions.**
+        Before searching, break this topic into 5-10 specific questions you need to answer.
+        For each question, formulate 2-3 search queries using different terminology.
+        For example, "regulatory risk" might also be searched as "compliance issue",
+        "government investigation", "SEC enforcement", "legal proceedings".
+        This ensures comprehensive retrieval from the index.
+
+        1. Retrieve everything already discovered for this section:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Review these results carefully — this is what we already have from SEC filings, news, and other ingested sources.
 
         2. Identify gaps in the existing material, then use MCP tools to research recent material events, risk factors, and regulatory filings.
 
         3. Read relevant structured artifacts in artifacts/ (JSON, CSV files) for specific data points.
+
+        4. **Evaluate information sufficiency.** Review your findings against the research brief.
+          List any gaps — questions you cannot yet answer with evidence. For each gap:
+          - Run additional search_index.py queries with different search terms
+          - Try alternative MCP tool calls with different parameters
+          Repeat until all brief questions are addressed or you've exhausted available
+          sources (max 3 additional search rounds).
 
         ${research_output_instructions}
 
@@ -539,11 +732,13 @@ tasks:
   # --- Body section writing tasks (Claude subagents, run in parallel) ---
   write_profile:
     sort_order: 30
-    description: "Write Section 2: Extended Profile"
+    description: "Write Section 1: Company Profile"
     type: claude
     depends_on: [append_index]
     config:
-      system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
+      system: |
+        You are a senior equity research analyst writing a professional report on ${company_name} (${symbol}).
+        Read and follow the style guide at ../../STYLE.md.
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
@@ -557,24 +752,28 @@ tasks:
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
       prompt: |
-        ${artifact_context_inline}
+        Your task is to use the gathered source material to write an extended narrative
+        company profile, including founding story, company history with key milestones
+        and a business overview with recent developments.
 
-        Before writing, retrieve all research material tagged for this section:
+        1. Gather material already discovered for this section:
           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
-        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+          Read artifacts/manifest.json for a description of all available artifacts and review relevant artifacts.
+          Read the inline artifacts below.
+
+        These are all chunks relevant to this section — data artifacts, research findings, and MCP responses.
         Use these results as your primary source alongside the inline structured data above.
-        Do not call external tools or APIs — focus on synthesis from provided data.
-
-        ---
-
-        I have collected comprehensive information on ${ticker} in the directory ${workdir}.
-
-        IMPORTANT: Read the style guide at ../../STYLE.md before writing. Follow its formatting conventions, source reliability hierarchy, and naming conventions.
-
-        All research data you need is provided in the inline artifacts above and in the artifacts/ directory.
-        Use Read and Grep tools to access larger files not included inline.
+        Use Read and Grep tools to access larger artifact files not included inline.
+        Do not call other external tools or APIs — focus on synthesis from provided data.
         Do not attempt external research — synthesize from the provided data only.
 
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Structure the profile as follows:
         1 paragraph executive summary covering: what the company does, its scale (revenue, market cap,
         employees, geographic footprint), and what makes it an interesting from an investment perspective.
 
@@ -601,38 +800,72 @@ tasks:
           Be specific — include figures, dates, and context for why each development matters.
           Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_2_profile.md
+        Begin the section with a top-level heading in this exact format: # 1. Company Profile
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_1_profile.md
+
+        ${artifact_context_inline}
+
+      hard_checks:
+        - "startswith: # 1. Company Profile"
+        # - "min_length: x"
+        # - "max_length: x"
+        # - "startswith: TEXT"
+        # - "contains: TEXT"
+        # - "regex: PATTERN"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections profile
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -640,11 +873,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_2_profile.md", format: md, description: "Section 2: Extended profile covering company history, core business, competitors, and recent news"}
+      section: {path: "artifacts/section_1_profile.md", format: md, description: "Section 1: Company profile covering company history, core business, competitors, and recent news"}
 
   write_business_model:
     sort_order: 31
-    description: "Write Section 3: Business Model"
+    description: "Write Section 2: Business Model"
     type: claude
     depends_on: [append_index]
     config:
@@ -680,7 +913,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 3 of an equity research report on ${ticker}: Business Model.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 2 of an equity research report on ${ticker}: Business Model.
 
         Cover:
         • Core businesses, products and services.
@@ -718,38 +957,64 @@ tasks:
         Show trends in revenues, margins, and key financial metrics using tables.
         Analyse dynamics, margin trade-offs, cannibalization, concentration risks.
 
-        Save results in markdown format to drafts/section_3_business_model.md
+        Begin the section with a top-level heading in this exact format: # 2. Business Model
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_2_business_model.md
+      hard_checks:
+        - "startswith: # 2. Business Model"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -757,11 +1022,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_3_business_model.md", format: md, description: "Section 3: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
+      section: {path: "artifacts/section_2_business_model.md", format: md, description: "Section 2: Business model analysis covering products, revenue streams, market characteristics, and competitive advantages"}
 
   write_competitive:
     sort_order: 32
-    description: "Write Section 4: Competitive Landscape"
+    description: "Write Section 3: Competitive Landscape"
     type: claude
     depends_on: [append_index]
     config:
@@ -797,7 +1062,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 4 of an equity research report on ${ticker}: Competitive Landscape.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 3 of an equity research report on ${ticker}: Competitive Landscape.
 
         Cover:
         • Identify their main competitors, including direct, adjacent, and emerging competitors.
@@ -805,38 +1076,64 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_4_competitive.md
+        Begin the section with a top-level heading in this exact format: # 3. Competitive Landscape
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_3_competitive.md
+      hard_checks:
+        - "startswith: # 3. Competitive Landscape"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -844,11 +1141,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_4_competitive.md", format: md, description: "Section 4: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
+      section: {path: "artifacts/section_3_competitive.md", format: md, description: "Section 3: Competitive landscape covering competitors, market share, differentiation, and growth trajectories"}
 
   write_supply_chain:
     sort_order: 33
-    description: "Write Section 5: Supply Chain Positioning"
+    description: "Write Section 4: Supply Chain Positioning"
     type: claude
     depends_on: [append_index]
     config:
@@ -884,7 +1181,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 5 of an equity research report on ${ticker}: Supply Chain Positioning.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 4 of an equity research report on ${ticker}: Supply Chain Positioning.
 
         Cover:
         • Describe their role in the upstream (supplier-side) and downstream (customer/distribution) parts of the supply chain.
@@ -892,38 +1195,64 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_5_supply_chain.md
+        Begin the section with a top-level heading in this exact format: # 4. Supply Chain Positioning
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_4_supply_chain.md
+      hard_checks:
+        - "startswith: # 4. Supply Chain Positioning"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections supply_chain
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -931,11 +1260,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_5_supply_chain.md", format: md, description: "Section 5: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
+      section: {path: "artifacts/section_4_supply_chain.md", format: md, description: "Section 4: Supply chain positioning covering upstream suppliers, downstream distribution, and key dependencies"}
 
   write_financial:
     sort_order: 34
-    description: "Write Section 6: Financial and Operating Leverage"
+    description: "Write Section 5: Financial and Operating Leverage"
     type: claude
     depends_on: [append_index]
     config:
@@ -971,7 +1300,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 6 of an equity research report on ${ticker}: Financial and Operating Leverage.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 5 of an equity research report on ${ticker}: Financial and Operating Leverage.
 
         Cover:
         • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings).
@@ -981,38 +1316,64 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_6_financial.md
+        Begin the section with a top-level heading in this exact format: # 5. Financial and Operating Leverage
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_5_financial.md
+      hard_checks:
+        - "startswith: # 5. Financial and Operating Leverage"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections financial
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -1020,11 +1381,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_6_financial.md", format: md, description: "Section 6: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
+      section: {path: "artifacts/section_5_financial.md", format: md, description: "Section 5: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
 
   write_valuation:
     sort_order: 35
-    description: "Write Section 7: Valuation"
+    description: "Write Section 6: Valuation"
     type: claude
     depends_on: [append_index]
     config:
@@ -1060,7 +1421,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 7 of an equity research report on ${ticker}: Valuation.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 6 of an equity research report on ${ticker}: Valuation.
 
         Cover:
         • Identify appropriate valuation methodologies, including income-based (e.g., DCF), asset-based (e.g. book value and sum of parts), market-based (e.g. peer multiples and comparisons), and LBO analysis
@@ -1070,38 +1437,64 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_7_valuation.md
+        Begin the section with a top-level heading in this exact format: # 6. Valuation
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_6_valuation.md
+      hard_checks:
+        - "startswith: # 6. Valuation"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections valuation
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -1109,11 +1502,11 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_7_valuation.md", format: md, description: "Section 7: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
+      section: {path: "artifacts/section_6_valuation.md", format: md, description: "Section 6: Valuation analysis covering DCF, peer multiples, analyst ratings, and market characteristics"}
 
   write_risk_news:
     sort_order: 36
-    description: "Write Section 8: Recent Developments, News Search and Risk Factors"
+    description: "Write Section 7: Recent Developments, News and Risk Factors"
     type: claude
     depends_on: [append_index]
     config:
@@ -1149,7 +1542,13 @@ tasks:
         Use Read and Grep tools to access larger files not included inline.
         Do not attempt external research — synthesize from the provided data only.
 
-        Write Section 8 of an equity research report on ${ticker}: Recent Developments, News Search and Risk Factors.
+        **Source triangulation**: When citing numbers or key claims:
+        - If confirmed by 2+ independent sources (e.g., SEC filing AND analyst report): state with confidence
+        - If from a single source only: qualify with source attribution (e.g., "per the 10-K filing...")
+        - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
+          per the Source Reliability Hierarchy in STYLE.md
+
+        Write Section 7 of an equity research report on ${ticker}: Recent Developments, News and Risk Factors.
 
         Use the comprehensive research data available. Key sources are in the LanceDB index (query via search_index.py above).
         Structured data is inline above. Text sources (news stories, risk analysis, investment thesis, SEC filings)
@@ -1164,38 +1563,64 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to drafts/section_8_risk_news.md
+        Begin the section with a top-level heading in this exact format: # 7. Recent Developments, News and Risk Factors
+        Use ## for subsection headings within.
+
+        Save results in markdown format to drafts/section_7_risk_news.md
+      hard_checks:
+        - "startswith: # 7. Recent Developments, News and Risk Factors"
+      hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
-        Evaluate for:
+        ## Evidence-grounded fact-checking
+
+        For every factual claim in the draft (numbers, dates, percentages, rankings, named entities),
+        perform explicit citation verification:
+
+          1. Retrieve the indexed source material for this section:
+            Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
+          2. Read relevant structured artifacts in artifacts/ (JSON, CSV) for specific numbers.
+          3. For each factual claim in the draft, output a verification entry:
+            - **Claim**: Quote the specific claim from the draft
+            - **Source**: Cite the source chunk ID or artifact file and the relevant text
+            - **Verdict**: CONFIRMED / CONTRADICTED / UNSUPPORTED
+            - **Detail**: If CONTRADICTED, state what the source actually says.
+              If UNSUPPORTED, suggest search queries that might find evidence.
+
+        ## Quality evaluation
+
+        Also evaluate for:
         - Clarity and readability
-        - Factual accuracy — cross-check claims against data in artifacts/
-        - Missing or incomplete analysis
-        - Unsupported claims or speculation
+        - Missing or incomplete analysis — topics covered in the source material but absent from the draft
+        - Unsupported claims or speculation not grounded in sources
         - Repetition
         - Professional tone and formatting
-        - Compliance with the style guide at ../../STYLE.md (formatting conventions, source hierarchy, naming)
+        - Compliance with the style guide at ../../STYLE.md
 
-        Write a numbered list of specific issues to address, ordered by importance.
-        For each issue, explain what's wrong and suggest how to fix it.
+        Write a numbered list of specific issues, ordered by importance.
+        For each issue: state what's wrong, cite the source data where applicable, and suggest the fix.
 
         Save your critique to ${critique_path}.
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
 
-        Address each issue identified in the critique:
-        - Improve clarity and readability
+        Address each issue identified in the critique. For factual corrections,
+        look up the correct values:
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections risk_news
+        Also read relevant structured artifacts in artifacts/ (JSON, CSV) to verify numbers.
+
+        - Fix factual inaccuracies — replace incorrect figures with source-verified values
+        - Elaborate on incomplete analysis using indexed source material
+        - Remove or substantiate unsupported claims — if no source supports it, cut it
         - Remove repetition
-        - Fix factual inaccuracies using data from artifacts/
-        - Elaborate on incomplete analysis using existing artifacts
-        - Remove or substantiate unsupported claims
+        - Improve clarity and readability
         - Ensure professional tone
         - Follow the style guide at ../../STYLE.md
 
-        Do not introduce new research. Use existing artifacts to resolve issues.
-        If you cannot verify a claim from the artifacts, make the language more hedged or remove it.
+        Do not introduce new research or speculation. Every factual claim in the
+        revised draft must be traceable to the indexed sources or structured artifacts.
 
         Save the revised section to ${rewrite_path}.
       critic_model: claude-sonnet-4-6
@@ -1203,24 +1628,86 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_8_risk_news.md", format: md, description: "Section 8: Recent developments, news, and risk factors from deep research"}
+      section: {path: "artifacts/section_7_risk_news.md", format: md, description: "Section 7: Recent developments, news, and risk factors from deep research"}
+
+  cross_check:
+    sort_order: 37
+    description: Cross-section consistency check across all written sections
+    type: claude
+    depends_on: [write_profile, write_business_model, write_competitive, write_supply_chain, write_financial, write_valuation, write_risk_news]
+    config:
+      system: "You are a senior equity research editor specializing in report consistency and accuracy."
+      model: claude-sonnet-4-6
+      max_budget_usd: 0.50
+      disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
+      artifacts_inline:
+        - artifacts/manifest.json
+        - artifacts/profile.json
+        - artifacts/key_ratios.csv
+      prompt: |
+        Read all 7 section artifacts:
+        - artifacts/section_1_profile.md
+        - artifacts/section_2_business_model.md
+        - artifacts/section_3_competitive.md
+        - artifacts/section_4_supply_chain.md
+        - artifacts/section_5_financial.md
+        - artifacts/section_6_valuation.md
+        - artifacts/section_7_risk_news.md
+
+        Also read the inline structured data for reference.
+
+        Perform a cross-section consistency check:
+
+        1. **Number consistency**: Are the same figures (revenue, margins, market share,
+           employee count, market cap) consistent across all sections? Flag any section
+           that uses a different number for the same metric.
+
+        2. **Narrative consistency**: Do any sections contradict each other? For example,
+           does the profile section describe a growth story while the financial section
+           paints a picture of decline?
+
+        3. **Redundancy**: Are there paragraphs or analyses that are substantially
+           duplicated across sections? Flag specific passages.
+
+        4. **Gap check**: Are there important topics mentioned in one section's data
+           that are absent from the section where they should be covered?
+
+        Output a JSON file with this structure:
+        {
+          "number_inconsistencies": [
+            {"metric": "...", "sections": {"section_1": "value", "section_5": "different value"}, "recommended": "..."}
+          ],
+          "contradictions": [
+            {"topic": "...", "section_a": "...", "section_b": "...", "detail": "..."}
+          ],
+          "redundancies": [
+            {"topic": "...", "sections": ["section_1", "section_2"], "recommendation": "keep in section_X, reference from section_Y"}
+          ],
+          "gaps": [
+            {"topic": "...", "missing_from": "section_X", "found_in": "section_Y"}
+          ]
+        }
+
+        Save to artifacts/cross_check.json
+    outputs:
+      cross_check: {path: "artifacts/cross_check.json", format: json, description: "Cross-section consistency check results: number mismatches, contradictions, redundancies, and gaps"}
 
   assemble_body:
-    sort_order: 37
+    sort_order: 38
     description: Assemble the 7 body sections into a single report body
     type: python
-    depends_on: [write_profile, write_business_model, write_competitive, write_supply_chain, write_financial, write_valuation, write_risk_news]
+    depends_on: [cross_check]
     config:
       script: skills/render_template.py
       args:
         template: templates/assemble_body.md.j2
         output: "${workdir}/artifacts/assembled_body.md"
-        file: "section_2=${workdir}/artifacts/section_2_profile.md section_3=${workdir}/artifacts/section_3_business_model.md section_4=${workdir}/artifacts/section_4_competitive.md section_5=${workdir}/artifacts/section_5_supply_chain.md section_6=${workdir}/artifacts/section_6_financial.md section_7=${workdir}/artifacts/section_7_valuation.md section_8=${workdir}/artifacts/section_8_risk_news.md"
+        file: "section_1=${workdir}/artifacts/section_1_profile.md section_2=${workdir}/artifacts/section_2_business_model.md section_3=${workdir}/artifacts/section_3_competitive.md section_4=${workdir}/artifacts/section_4_supply_chain.md section_5=${workdir}/artifacts/section_5_financial.md section_6=${workdir}/artifacts/section_6_valuation.md section_7=${workdir}/artifacts/section_7_risk_news.md"
     outputs:
-      body_text: {path: "artifacts/assembled_body.md", format: md, description: "Assembled report body combining all 7 sections (2-8) into a single document"}
+      body_text: {path: "artifacts/assembled_body.md", format: md, description: "Assembled report body combining all 7 sections (1-7) into a single document"}
 
   write_conclusion:
-    sort_order: 38
+    sort_order: 39
     description: Write the main report conclusion
     type: claude
     depends_on: [assemble_body]
@@ -1243,12 +1730,19 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Save results in markdown format to artifacts/conclusion.md.
+        Save results in markdown format to drafts/conclusion.md.
+      hard_checks:
+        - "startswith: # Investment Conclusion"
+        - "max_length: 4000"
+      hard_check_retries: 2
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+        Address each issue identified. Save the revised version to ${rewrite_path}.
     outputs:
       section: {path: "artifacts/conclusion.md", format: md, description: "Report conclusion: SWOT analysis, bull/bear cases, risk assessment, and monitoring watchpoints"}
 
   write_intro:
-    sort_order: 39
+    sort_order: 40
     description: Write the main report intro
     type: claude
     depends_on: [assemble_body, write_conclusion]
@@ -1265,12 +1759,18 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis.
 
-        Save results in markdown format to artifacts/intro.md.
+        Save results in markdown format to drafts/intro.md.
+      hard_checks:
+        - "max_length: 4000"
+      hard_check_retries: 2
+      rewrite_prompt: |
+        Read the current draft at ${draft_path} and the critique at ${critique_path}.
+        Address each issue identified. Save the revised version to ${rewrite_path}.
     outputs:
       section: {path: "artifacts/intro.md", format: md, description: "Short introductory paragraph (<100 words) summarizing the report scope and key findings"}
 
   assemble_text:
-    sort_order: 40
+    sort_order: 41
     description: Assemble the 3 text sections into a complete report
     type: python
     depends_on: [assemble_body,write_conclusion, write_intro]
@@ -1285,7 +1785,7 @@ tasks:
       body_text: {path: "artifacts/report_body.md", format: md, description: "Assembled full report: intro + body sections 2-8 + conclusion in final markdown format"}
 
   critique_body_final:
-    sort_order: 41
+    sort_order: 42
     description: Critique the assembled report and identify issues to address
     type: claude
     depends_on: [assemble_text]
@@ -1301,10 +1801,14 @@ tasks:
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
+        - artifacts/cross_check.json
       prompt: |
         ${artifact_context_inline}
 
         Read the assembled report text at artifacts/report_body.md carefully and provide a detailed critique.
+
+        Also read the cross-section consistency check at artifacts/cross_check.json.
+        Address any number inconsistencies, contradictions, redundancies, or gaps identified there.
 
         Evaluate the report for:
         - Following the structure exactly, with these exact numbered headings and no missing sections
@@ -1335,7 +1839,7 @@ tasks:
       critique: {path: "artifacts/report_critique.md", format: md, description: "Numbered list of issues identified in the report with explanations and suggested fixes"}
 
   polish_body_final:
-    sort_order: 42
+    sort_order: 43
     description: Revise the report based on critique feedback
     type: claude
     depends_on: [critique_body_final]
@@ -1376,7 +1880,7 @@ tasks:
       final_report: {path: "artifacts/report_body_final.md", format: md, description: "Final polished report incorporating all critique feedback and revisions"}
 
   final_assembly:
-    sort_order: 43
+    sort_order: 44
     description: Assemble all report components into final formatted report using Jinja2 template
     type: python
     depends_on: [polish_body_final]
@@ -1386,3 +1890,63 @@ tasks:
         workdir: "${workdir}"
     outputs:
       final_report: {path: "artifacts/final_report.md", format: md, description: "Complete formatted report with title, charts, tables, and polished body content assembled via Jinja2 template"}
+
+  evaluate_report:
+    sort_order: 45
+    description: Evaluate final report quality with structured scoring
+    type: claude
+    depends_on: [final_assembly]
+    config:
+      system: "You are an independent report quality assessor for institutional equity research."
+      model: claude-sonnet-4-6
+      max_budget_usd: 0.50
+      disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
+      artifacts_inline:
+        - artifacts/manifest.json
+        - artifacts/profile.json
+        - artifacts/key_ratios.csv
+        - artifacts/analyst_recommendations.json
+      prompt: |
+        ${artifact_context_inline}
+
+        Read the final report at artifacts/final_report.md carefully.
+
+        Score this report on the following dimensions (1-5 scale, with justification):
+
+        1. **Factual Accuracy** (spot-check 10 specific claims against the inline source artifacts):
+           For each claim checked, state the claim, the source value, and whether they match.
+           Score reflects the proportion of verified claims.
+
+        2. **Completeness** (does the report cover all aspects an equity analyst would need?):
+           List any material topics missing. Score reflects coverage breadth.
+
+        3. **Consistency** (do numbers and narratives match across sections?):
+           Note any internal contradictions found. Score reflects consistency.
+
+        4. **Analytical Depth** (does the report go beyond restating facts to provide insight?):
+           Identify sections with strong vs. weak analysis. Score reflects depth.
+
+        5. **Actionability** (does the conclusion give clear, specific investment guidance?):
+           Assess whether a portfolio manager could act on this report. Score reflects usefulness.
+
+        6. **Source Attribution** (are claims properly attributed to specific sources?):
+           Note any unsourced claims. Score reflects attribution quality.
+
+        Output a JSON evaluation:
+        {
+          "scores": {
+            "factual_accuracy": {"score": N, "justification": "...", "spot_checks": [...]},
+            "completeness": {"score": N, "justification": "...", "missing_topics": [...]},
+            "consistency": {"score": N, "justification": "...", "contradictions": [...]},
+            "analytical_depth": {"score": N, "justification": "..."},
+            "actionability": {"score": N, "justification": "..."},
+            "source_attribution": {"score": N, "justification": "..."}
+          },
+          "overall_score": N,
+          "summary": "...",
+          "top_improvements": ["...", "...", "..."]
+        }
+
+        Save to artifacts/report_evaluation.json
+    outputs:
+      evaluation: {path: "artifacts/report_evaluation.json", format: json, description: "Structured quality evaluation with scores across 6 dimensions"}

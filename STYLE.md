@@ -1,5 +1,15 @@
 # Profile Section Writer - Style guide for all sections
 
+## General style guide
+
+- Write at the level of a Goldman Sachs or Morgan Stanley initiation report
+- Write in a clear, concise, measured, professional tone
+- Have strong opinions and express them clearly. However, back them up with data; Distinguish the facts (the objective data) from opinions (interpretation and analysis). Label opinions clearly using analytical framing like: this suggests/indicates/implies, a reasonable conclusion is. Analysis must be supported by sources and data.
+- Use specific numbers, not vague qualifiers
+- Acknowledge uncertainty where it exists — do not oversell
+- Avoid marketing language; maintain analytical neutrality
+- Each section should stand alone as useful to a reader who skips the others
+
 ## Source Reliability Hierarchy (most to least authoritative)
 
 1. `sec_10k_item1_business.md` — authoritative language for business description, segment breakdowns, revenue percentages
@@ -35,7 +45,7 @@
 
 ## Number Formatting
 
-- **Stock prices**: Always format to nearest penny (2 decimal places), e.g., "$328.47" not "$328.4700012207031"
+- **Stock prices**: Always format to nearest penny (2 decimal places), e.g., "$328.47"
 - **Market capitalization**: Express in billions with 1 decimal, e.g., "$24.3B" or "$24.3 billion"; use trillions for >= $1T, e.g., "$3.45T"
 - **Revenue / earnings**: Use billions or millions as appropriate, e.g., "$4.7 billion", "$312 million"
 - **Percentages**: 1 decimal place for margins, growth rates, yields, e.g., "23.4%", not "23.4123%"

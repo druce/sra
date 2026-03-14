@@ -99,6 +99,7 @@ EMBED_MODEL = "text-embedding-3-small"
 EMBED_DIM = 1536
 CHUNK_TARGET_TOKENS = 600
 CHUNK_MAX_TOKENS = 800
+CHUNK_OVERLAP_TOKENS = 100  # ~12% overlap to preserve context at chunk boundaries
 
 # ============================================================================
 # Deep Research Configuration (Claude)

@@ -45,6 +45,7 @@ async def invoke_claude(
     tools_log_path: Optional[Path] = None,
     stream_to_stdout: bool = False,
     stream_prefix: Optional[str] = None,
+    timeout: Optional[int] = None,
 ) -> dict:
     """
     Invoke claude -p with a prompt via CLI subprocess.
@@ -73,6 +74,8 @@ async def invoke_claude(
         tools_log_path: Optional path to append tool_use/tool_result entries (JSONL).
         stream_to_stdout: If True, echo stream log content to stdout in real time.
         stream_prefix: Optional prefix for stdout lines (e.g. "[news]") for interleaved output.
+        timeout: Optional timeout in seconds for the entire subprocess. If exceeded,
+                 the process is killed and a failed result is returned.
 
     Returns:
         Dict with keys: status ("complete"|"failed"), error (str|None),
@@ -123,9 +126,24 @@ async def invoke_claude(
         stream_f.write(f"\n{'='*60}\n[{label}] step: {step_label}\n{'='*60}\n")
         stream_f.flush()
 
-        await _consume_stream(proc, stream_f, tools_f, label, stream_to_stdout, stream_prefix)
+        async def _run_and_wait() -> None:
+            await _consume_stream(proc, stream_f, tools_f, label, stream_to_stdout, stream_prefix)
+            await proc.wait()
 
-        await proc.wait()
+        try:
+            await asyncio.wait_for(_run_and_wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            logger.warning(f"  [{label}] Timeout after {timeout}s — killing subprocess")
+            try:
+                proc.kill()
+                await proc.wait()
+            except ProcessLookupError:
+                pass
+            return {
+                "status": "failed",
+                "error": f"Timed out after {timeout}s",
+                "artifacts": [],
+            }
 
     # Normalize outputs dict
     outputs: dict = {}
@@ -146,24 +164,20 @@ def _build_prompt(
     expected_outputs: Optional[dict],
     output_file: Optional[str],
 ) -> str:
-    """Assemble the full prompt from system preamble, inline artifacts, and task prompt."""
+    """Assemble the full prompt from system preamble, task prompt, and inline artifacts."""
     parts = []
     if system:
         parts.append(system)
         parts.append("")
 
     inline_artifacts = artifacts_inline or []
-    if inline_artifacts:
-        parts.append(
-            "Key artifacts are included inline below.")
-        parts.append(
-            "Additional files are in artifacts/ — use Read tool for larger files not included inline.")
-    else:
-        parts.append("All research data is in the artifacts/ subdirectory.")
-        parts.append(
-            "Read artifacts/manifest.json for a description of all available files.")
 
-    # Inline artifacts
+    parts.append("")
+    parts.append("---")
+    parts.append("")
+    parts.append(prompt)
+
+    # Inline artifacts (after the task prompt so instructions come first)
     if inline_artifacts:
         parts.append("")
         parts.append("--- INLINE ARTIFACTS ---")
@@ -175,11 +189,6 @@ def _build_prompt(
             else:
                 logger.info(f"  [{label}] Skipping inline: {art_path} (missing or >50KB)")
         parts.append("--- END INLINE ARTIFACTS ---")
-
-    parts.append("")
-    parts.append("---")
-    parts.append("")
-    parts.append(prompt)
 
     # Normalize outputs for save instructions
     outputs: dict = {}

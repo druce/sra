@@ -30,6 +30,7 @@ class DagHeader(BaseModel):
     """Top-level DAG metadata."""
     version: Literal[2]
     name: str
+    vars: dict[str, str] = {}
     inputs: dict[str, str] = {}
     root_dir: str = "."
     template_dir: str = "templates"
@@ -91,6 +92,10 @@ class ClaudeConfig(BaseModel):
     critic_disallowed_tools: list[str] = []
     rewrite_disallowed_tools: list[str] = []
     artifacts_inline: list[str] = []  # artifact paths to inject inline into prompt
+
+    # Hard checks — programmatic validation of output
+    hard_checks: list[str] = []
+    hard_check_retries: int = 2
 
 
 class ShellConfig(BaseModel):
@@ -227,6 +232,16 @@ def validate_dag(raw: dict) -> DagFile:
                     f"Task '{task_id}' has n_iterations={n} but no rewrite_prompt. "
                     f"Both critic_prompt and rewrite_prompt are required when n_iterations > 0."
                 )
+
+    # Validate hard_checks config consistency
+    for task_id, task in dag.tasks.items():
+        if not hasattr(task.config, 'hard_checks'):
+            continue
+        if task.config.hard_checks and not task.config.rewrite_prompt:
+            raise ValueError(
+                f"Task '{task_id}' has hard_checks but no rewrite_prompt. "
+                f"A rewrite_prompt is required to fix hard check failures."
+            )
 
     return dag
 

@@ -40,7 +40,7 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from config import EMBED_MODEL, EMBED_DIM, CHUNK_MAX_TOKENS  # noqa: E402
+from config import EMBED_MODEL, EMBED_DIM, CHUNK_MAX_TOKENS, CHUNK_OVERLAP_TOKENS  # noqa: E402
 from utils import setup_logging, load_environment  # noqa: E402
 
 load_environment()
@@ -61,16 +61,15 @@ def count_tokens(text: str) -> int:
 def chunk_text(text: str, source: str) -> list[dict]:
     """Split text into chunks at paragraph boundaries.
 
-    Algorithm: greedy accumulation. Walk paragraphs in order, adding each to
-    the current chunk. When the next paragraph would push the chunk past
-    CHUNK_MAX_TOKENS, finalize the current chunk and start a new one.
+    Algorithm: greedy accumulation with overlap. Walk paragraphs in order,
+    adding each to the current chunk. When the next paragraph would push the
+    chunk past CHUNK_MAX_TOKENS, finalize the current chunk and start a new
+    one seeded with trailing paragraphs from the previous chunk (up to
+    CHUNK_OVERLAP_TOKENS) to preserve context at boundaries.
 
     If a single paragraph exceeds CHUNK_MAX_TOKENS, it becomes its own chunk
     (we never split within a paragraph — this preserves sentence coherence
     for financial documents where mid-paragraph splits lose context).
-
-    No overlap between chunks. Downstream hybrid search (vector + BM25) with
-    reciprocal rank fusion compensates by retrieving multiple adjacent chunks.
 
     Each chunk gets:
       - id: "{source_stem}_{sequential_index}" for stable references
@@ -98,8 +97,19 @@ def chunk_text(text: str, source: str) -> list[dict]:
                 "doc_type": infer_doc_type(source),
             })
             chunk_idx += 1
-            current_parts = []
-            current_tokens = 0
+            # Carry forward trailing paragraphs as overlap prefix for the
+            # next chunk (up to CHUNK_OVERLAP_TOKENS worth of content).
+            overlap_parts: list[str] = []
+            overlap_tokens = 0
+            for prev_para in reversed(current_parts):
+                prev_tokens = count_tokens(prev_para)
+                if overlap_tokens + prev_tokens > CHUNK_OVERLAP_TOKENS:
+                    break
+                overlap_parts.append(prev_para)
+                overlap_tokens += prev_tokens
+            overlap_parts.reverse()
+            current_parts = overlap_parts
+            current_tokens = overlap_tokens
         current_parts.append(para)
         current_tokens += para_tokens
 

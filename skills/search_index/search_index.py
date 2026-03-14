@@ -26,13 +26,13 @@ load_environment()
 logger = setup_logging(__name__)
 
 
-def reciprocal_rank_fusion(rankings: list[list[str]], k: int = 60) -> list[str]:
-    """Merge multiple ranked lists via RRF. Returns IDs sorted by fused score."""
+def reciprocal_rank_fusion(rankings: list[list[str]], k: int = 60) -> tuple[list[str], dict[str, float]]:
+    """Merge multiple ranked lists via RRF. Returns (sorted IDs, scores dict)."""
     scores: dict[str, float] = {}
     for ranking in rankings:
         for rank, doc_id in enumerate(ranking):
             scores[doc_id] = scores.get(doc_id, 0.0) + 1.0 / (k + rank + 1)
-    return sorted(scores, key=lambda x: scores[x], reverse=True)
+    return sorted(scores, key=lambda x: scores[x], reverse=True), scores
 
 
 def show_stats(workdir: Path, source_filter: str | None = None, tag_filter: str | None = None) -> int:
@@ -184,7 +184,11 @@ def main() -> int:
     # RRF fusion
     vec_ids = vec_results["id"].tolist()
     fts_ids = fts_results["id"].tolist() if len(fts_results) > 0 else []
-    merged_ids = reciprocal_rank_fusion([vec_ids, fts_ids])
+    merged_ids, rrf_scores = reciprocal_rank_fusion([vec_ids, fts_ids])
+
+    # Build rank lookups for relevance metadata
+    vec_rank_lookup = {doc_id: rank for rank, doc_id in enumerate(vec_ids)}
+    fts_rank_lookup = {doc_id: rank for rank, doc_id in enumerate(fts_ids)}
 
     # Build id->row lookup
     all_rows = {row["id"]: row for _, row in vec_results.iterrows()}
@@ -206,6 +210,9 @@ def main() -> int:
             "source": row["source"],
             "doc_type": row["doc_type"],
             "tags": tags,
+            "rrf_score": round(rrf_scores.get(doc_id, 0.0), 4),
+            "vector_rank": vec_rank_lookup.get(doc_id),
+            "fts_rank": fts_rank_lookup.get(doc_id),
         })
         if len(output) >= args.top_k:
             break
