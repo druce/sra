@@ -39,7 +39,7 @@ def load_text(path: Path) -> str | None:
     return path.read_text().strip()
 
 
-def build_peers_list(peers_data: dict, profile: dict) -> list[dict]:
+def build_peers_list(peers_data: dict) -> list[dict]:
     """Build list of peer dicts for template."""
     if not peers_data or "symbol" not in peers_data:
         return []
@@ -114,7 +114,7 @@ def main() -> int:
 
     # Build template context
     technical_analysis = build_technical_context(tech_data)
-    peers = build_peers_list(peers_data, profile) if peers_data else []
+    peers = build_peers_list(peers_data) if peers_data else []
 
     context = {
         "symbol": profile.get("symbol", args.ticker),

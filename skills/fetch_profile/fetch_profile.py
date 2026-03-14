@@ -79,7 +79,7 @@ def get_company_profile(symbol: str) -> Tuple[bool, Optional[Dict], Optional[str
             "business_summary": info.get('longBusinessSummary', 'N/A'),
             "market_cap": info.get('marketCap'),
             "enterprise_value": info.get('enterpriseValue'),
-            "current_price": round(float(info.get('currentPrice') or info.get('regularMarketPrice') or 0), 2) or None,
+            "current_price": round(float(raw_price), 2) if (raw_price := info.get('currentPrice') or info.get('regularMarketPrice')) is not None else None,
             "52_week_high": info.get('fiftyTwoWeekHigh'),
             "52_week_low": info.get('fiftyTwoWeekLow'),
             "beta": info.get('beta'),
