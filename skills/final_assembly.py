@@ -52,7 +52,7 @@ def build_peers_list(peers_data: dict) -> list[dict]:
         peers.append({
             "symbol": symbols[i],
             "name": names[i],
-            "price": f"{prices[i]:.2f}",
+            "price": f"{prices[i]:.2f}" if prices[i] is not None else "N/A",
             "market_cap": format_market_cap(market_caps[i]),
             "pe_ratio": "N/A",
             "revenue": "N/A",

@@ -105,20 +105,28 @@ def _extract_line_items(latest) -> dict:
                     return 0.0
         return 0.0
 
+    def _first(*keys: str) -> float:
+        """Return the first non-zero value across naming conventions."""
+        for k in keys:
+            v = _val(k)
+            if v != 0.0:
+                return v
+        return 0.0
+
     return {
-        "total_revenue": _val("Total Revenue") or _val("TotalRevenue"),
-        "cost_of_revenue": _val("Cost Of Revenue") or _val("CostOfRevenue"),
-        "gross_profit": _val("Gross Profit") or _val("GrossProfit"),
-        "operating_expense": _val("Operating Expense") or _val("OperatingExpense"),
-        "selling_ga": _val("Selling General And Administration") or _val("SellingGeneralAndAdministration"),
-        "research_dev": _val("Research And Development") or _val("ResearchAndDevelopment") or _val("Research Development"),
-        "other_operating": _val("Other Operating Expenses") or _val("OtherOperatingExpenses"),
-        "operating_income": _val("Operating Income") or _val("OperatingIncome") or _val("EBIT"),
-        "interest_expense": abs(_val("Interest Expense") or _val("InterestExpense") or _val("Interest Expense Non Operating") or _val("InterestExpenseNonOperating")),
-        "tax_provision": abs(_val("Tax Provision") or _val("TaxProvision") or _val("Income Tax Expense") or _val("IncomeTaxExpense")),
-        "other_income": _val("Other Income Expense") or _val("OtherIncomeExpense") or _val("Other Non Operating Income Expenses"),
-        "net_income": _val("Net Income") or _val("NetIncome") or _val("Net Income Common Stockholders") or _val("NetIncomeCommonStockholders"),
-        "pretax_income": _val("Pretax Income") or _val("PretaxIncome"),
+        "total_revenue": _first("Total Revenue", "TotalRevenue"),
+        "cost_of_revenue": _first("Cost Of Revenue", "CostOfRevenue"),
+        "gross_profit": _first("Gross Profit", "GrossProfit"),
+        "operating_expense": _first("Operating Expense", "OperatingExpense"),
+        "selling_ga": _first("Selling General And Administration", "SellingGeneralAndAdministration"),
+        "research_dev": _first("Research And Development", "ResearchAndDevelopment", "Research Development"),
+        "other_operating": _first("Other Operating Expenses", "OtherOperatingExpenses"),
+        "operating_income": _first("Operating Income", "OperatingIncome", "EBIT"),
+        "interest_expense": abs(_first("Interest Expense", "InterestExpense", "Interest Expense Non Operating", "InterestExpenseNonOperating")),
+        "tax_provision": abs(_first("Tax Provision", "TaxProvision", "Income Tax Expense", "IncomeTaxExpense")),
+        "other_income": _first("Other Income Expense", "OtherIncomeExpense", "Other Non Operating Income Expenses"),
+        "net_income": _first("Net Income", "NetIncome", "Net Income Common Stockholders", "NetIncomeCommonStockholders"),
+        "pretax_income": _first("Pretax Income", "PretaxIncome"),
     }
 
 

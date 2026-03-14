@@ -165,8 +165,8 @@ def embed_chunks(chunks: list[dict], client: OpenAI) -> list[dict]:
     texts = [c["text"] for c in chunks]
     logger.info(f"Embedding {len(texts)} chunks...")
     response = client.embeddings.create(model=EMBED_MODEL, input=texts)
-    for i, data in enumerate(response.data):
-        chunks[i]["embedding"] = data.embedding
+    for data in response.data:
+        chunks[data.index]["embedding"] = data.embedding
     return chunks
 
 

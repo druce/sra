@@ -307,7 +307,7 @@ def save_analyst_recommendations(symbol: str, work_dir: Path) -> bool:
             for k, v in rec.items():
                 if hasattr(v, "isoformat"):
                     clean[k] = v.isoformat()
-                elif pd.isna(v) if isinstance(v, (float, int)) else False:
+                elif (isinstance(v, (int, float)) or hasattr(v, '__float__')) and pd.isna(v):
                     clean[k] = None
                 else:
                     try:

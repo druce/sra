@@ -358,7 +358,7 @@ def _build_narrative_analysis(
             bb_comment = "Price is above the upper Bollinger Band (potential overbought)."
         elif latest_close < bb_lower_val:
             bb_comment = "Price is below the lower Bollinger Band (potential oversold)."
-        else:
+        elif bb_upper_val != bb_lower_val:
             bb_pct = (
                 (latest_close - bb_lower_val)
                 / (bb_upper_val - bb_lower_val)
@@ -368,6 +368,8 @@ def _build_narrative_analysis(
                 f"Price is at {bb_pct:.0f}% of the Bollinger Band range "
                 f"(${bb_lower_val:.2f} - ${bb_upper_val:.2f})."
             )
+        else:
+            bb_comment = f"Bollinger Bands are flat at ${bb_upper_val:.2f}."
         parts.append(bb_comment)
 
     return "\n".join(parts)

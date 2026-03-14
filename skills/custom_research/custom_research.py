@@ -253,10 +253,10 @@ async def run_all(symbol: str, workdir: Path) -> int:
     )
 
     print(json.dumps({
-        "status": "complete",
+        "status": "partial" if failed else "complete",
         "artifacts": all_artifacts,
         "variables": variables,
-        "error": None,
+        "error": f"{len(failed)}/{len(prompts)} prompts failed" if failed else None,
     }))
 
     if failed:
@@ -270,7 +270,11 @@ def main() -> int:
     parser.add_argument("--workdir", default=None, help="Working directory")
     args = parser.parse_args()
 
-    symbol = validate_symbol(args.ticker)
+    try:
+        symbol = validate_symbol(args.ticker)
+    except ValueError as e:
+        print(json.dumps({"status": "failed", "artifacts": [], "error": str(e)}))
+        return 2
     workdir = args.workdir or default_workdir(symbol)
 
     return asyncio.run(run_all(symbol, Path(workdir)))
