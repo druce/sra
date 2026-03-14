@@ -83,21 +83,11 @@ def main() -> int:
             # Fall back to primary tag from chunk_research
             c["tags"] = json.dumps([c.get("primary_tag", "research")])
 
-    # Convert to records matching LanceDB schema
-    records = []
-    for c in chunks:
-        records.append({
-            "id": c["id"],
-            "text": c["text"],
-            "source": c["source"],
-            "doc_type": c.get("doc_type", "research_finding"),
-            "tags": c["tags"],
-            "vector": [float(x) for x in c["embedding"]],
-        })
-
     # Append to existing LanceDB table
     import lancedb
-    from chunk_index import CHUNKS_SCHEMA
+    from chunk_index import CHUNKS_SCHEMA, chunks_to_records
+
+    records = chunks_to_records(chunks, default_doc_type="research_finding")
 
     db = lancedb.connect(str(index_dir))
     if "chunks" not in db.table_names():

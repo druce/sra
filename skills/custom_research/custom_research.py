@@ -76,8 +76,8 @@ def _get_mcp_config(workdir: Path) -> list[str] | None:
 
 
 def get_company_name(symbol: str, workdir: Path) -> str:
-    """Resolve company name from profile.json or fall back to symbol."""
-    return resolve_company_name(symbol, workdir)
+    """Resolve company name from profile.json, yfinance, or symbol."""
+    return resolve_company_name(symbol, workdir, yfinance_fallback=True)
 
 
 async def run_prompt(

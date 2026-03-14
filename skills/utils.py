@@ -360,14 +360,20 @@ def ensure_directory(path: Union[str, Path]) -> Path:
     return path
 
 
-def resolve_company_name(symbol: str, workdir: Union[str, Path]) -> str:
+def resolve_company_name(
+    symbol: str,
+    workdir: Union[str, Path],
+    *,
+    yfinance_fallback: bool = False,
+) -> str:
     """Resolve a human-readable company name from profile.json, falling back to symbol.
 
     Checks profile.json for company_name, longName, and shortName keys.
+    If yfinance_fallback is True, also tries yfinance before giving up.
     Returns the symbol string if no name is found.
 
-    Used by fetch_fundamental, fetch_wikipedia, and custom_research to get
-    a display name for the company being researched.
+    Used by fetch_fundamental, fetch_wikipedia, fetch_detailed_profile_info,
+    and custom_research to get a display name for the company being researched.
     """
     import json
     profile_path = Path(workdir) / "artifacts" / "profile.json"
@@ -383,6 +389,17 @@ def resolve_company_name(symbol: str, workdir: Union[str, Path]) -> str:
                 return name
         except (json.JSONDecodeError, OSError):
             pass
+
+    if yfinance_fallback:
+        try:
+            import yfinance as yf
+            info = yf.Ticker(symbol).info or {}
+            name = info.get("longName") or info.get("shortName")
+            if name:
+                return name
+        except Exception:
+            pass
+
     return symbol
 
 

@@ -30,6 +30,25 @@ def get_chunks_schema():
     return _CHUNKS_SCHEMA
 
 
+def chunks_to_records(chunks: list[dict], default_doc_type: str = "other") -> list[dict]:
+    """Convert embedded chunks (with tags already merged) to LanceDB record format.
+
+    Each chunk must have: id, text, source, tags (JSON string), embedding (float list).
+    Casts embedding values to float32 to match the Arrow schema.
+    """
+    return [
+        {
+            "id": c["id"],
+            "text": c["text"],
+            "source": c["source"],
+            "doc_type": c.get("doc_type", default_doc_type),
+            "tags": c["tags"],
+            "vector": [float(x) for x in c["embedding"]],
+        }
+        for c in chunks
+    ]
+
+
 # Backward-compatible attribute access: `from chunk_index import CHUNKS_SCHEMA`
 def __getattr__(name):
     if name == "CHUNKS_SCHEMA":

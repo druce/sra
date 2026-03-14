@@ -50,32 +50,11 @@ def get_company_name(symbol: str, workdir: str) -> str:
     Resolve a human-readable company name for *symbol*.
 
     Priority:
-        1. ``{workdir}/artifacts/profile.json``  (via resolve_company_name)
+        1. ``{workdir}/artifacts/profile.json``
         2. yfinance ``ticker.info['longName']``
         3. The raw *symbol* string as a last resort
     """
-    # 1. Try profile.json (shared logic)
-    name = resolve_company_name(symbol, workdir)
-    if name != symbol:
-        logger.info("Company name from profile.json: %s", name)
-        return name
-
-    # 2. Try yfinance (wikipedia-specific fallback for better search terms)
-    try:
-        import yfinance as yf
-
-        ticker = yf.Ticker(symbol)
-        info = ticker.info or {}
-        yf_name = info.get("longName")
-        if yf_name:
-            logger.info("Company name from yfinance: %s", yf_name)
-            return yf_name
-    except Exception as exc:
-        logger.warning("yfinance lookup failed: %s", exc)
-
-    # 3. Fallback to symbol
-    logger.info("Using symbol as company name: %s", symbol)
-    return symbol
+    return resolve_company_name(symbol, workdir, yfinance_fallback=True)
 
 
 def fetch_wikipedia_summary(

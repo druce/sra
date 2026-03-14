@@ -38,7 +38,7 @@ _SKILLS_DIR = Path(__file__).resolve().parent.parent
 if str(_SKILLS_DIR) not in sys.path:
     sys.path.insert(0, str(_SKILLS_DIR))
 
-from chunk_index import CHUNKS_SCHEMA  # noqa: E402
+from chunk_index import CHUNKS_SCHEMA, chunks_to_records  # noqa: E402
 from utils import setup_logging  # noqa: E402
 
 logger = setup_logging(__name__)
@@ -90,20 +90,7 @@ def main() -> int:
     db = lancedb.connect(str(index_dir))
 
     schema = CHUNKS_SCHEMA
-
-    # Convert chunks to records, casting embeddings to float32.
-    # The embedding values come from OpenAI as Python floats (float64);
-    # we convert to float32 to match the Arrow schema and halve storage.
-    records = []
-    for c in chunks:
-        records.append({
-            "id": c["id"],
-            "text": c["text"],
-            "source": c["source"],
-            "doc_type": c.get("doc_type", "other"),
-            "tags": c["tags"],
-            "vector": [float(x) for x in c["embedding"]],
-        })
+    records = chunks_to_records(chunks)
 
     # Full rebuild: drop existing table if present, then create fresh.
     # This is idempotent — safe to rerun on retries or pipeline restarts.

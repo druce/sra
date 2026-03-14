@@ -40,39 +40,11 @@ from utils import (  # noqa: E402
     load_environment,
     default_workdir,
     invoke_claude,
+    resolve_company_name,
 )
 
 load_environment()
 logger = setup_logging(__name__)
-
-# ---------------------------------------------------------------------------
-# Company name resolution (same as original skills)
-# ---------------------------------------------------------------------------
-
-def get_company_name(symbol: str, workdir: Path) -> str:
-    """Resolve company name from profile.json, yfinance, or symbol."""
-    profile_path = workdir / "artifacts" / "profile.json"
-    if profile_path.exists():
-        try:
-            profile = json.loads(profile_path.read_text())
-            name = profile.get("company_name")
-            if name and name != "N/A":
-                logger.info("Company name from profile.json: %s", name)
-                return name
-        except (json.JSONDecodeError, OSError) as e:
-            logger.warning("Could not read profile.json: %s", e)
-
-    try:
-        import yfinance as yf
-        info = yf.Ticker(symbol).info
-        name = info.get("longName") or info.get("shortName")
-        if name:
-            logger.info("Company name from yfinance: %s", name)
-            return name
-    except Exception as e:
-        logger.warning("yfinance lookup failed: %s", e)
-
-    return symbol
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +440,7 @@ async def run(symbol: str, workdir: Path, debug: bool = False) -> int:
     ensure_directory(workdir / "artifacts")
     ensure_directory(workdir / "knowledge")
 
-    company_name = get_company_name(symbol, workdir)
+    company_name = resolve_company_name(symbol, workdir, yfinance_fallback=True)
     company = f"{company_name} ({symbol})" if company_name != symbol else symbol
     logger.info("Company: %s", company)
 
