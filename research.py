@@ -542,6 +542,17 @@ async def run_claude_task(task: dict, workdir: Path) -> dict:
     else:
         write_outputs = outputs
 
+    # Pre-copy: copy files before Claude starts (avoids reading large files into context)
+    for copy_spec in params.get("pre_copy", []):
+        src = workdir / copy_spec["from"]
+        dst = workdir / copy_spec["to"]
+        if src.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(src), str(dst))
+            log(f"  [{task['id']}] Pre-copied {copy_spec['from']} -> {copy_spec['to']}")
+        else:
+            log(f"  [{task['id']}] WARNING: pre_copy source not found: {copy_spec['from']}")
+
     # Resolve mcp_config and extra_env
     task_mcp_config = params.get("mcp_config") or None
     task_extra_env = {"MCP_CACHE_WORKDIR": str(workdir), "MCP_TASK_ID": task["id"]} if task_mcp_config else None

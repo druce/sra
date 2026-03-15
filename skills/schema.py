@@ -97,6 +97,9 @@ class ClaudeConfig(BaseModel):
     hard_checks: list[str] = []
     hard_check_retries: int = 2
 
+    # Pre-copy: copy files before Claude starts (avoids reading large files into context)
+    pre_copy: list[dict] = []
+
 
 class ShellConfig(BaseModel):
     """Config for type: shell — runs a shell command."""

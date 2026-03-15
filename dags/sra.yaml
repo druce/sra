@@ -202,6 +202,7 @@ tasks:
     type: claude
     depends_on: [chunk_documents]
     config:
+      model: claude-haiku-4-5
       prompt: |
         ${artifact_context}
 
@@ -240,6 +241,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are an investigative business journalist specializing in corporate histories
@@ -282,7 +285,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -297,6 +300,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a management consultant specializing in business model analysis and
@@ -351,7 +356,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -366,6 +371,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a strategy consultant with deep expertise in competitive dynamics,
@@ -416,7 +423,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -431,6 +438,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a supply chain analyst with expertise in manufacturing, logistics,
@@ -477,7 +486,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -492,6 +501,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a forensic accountant and financial analyst specializing in earnings
@@ -538,7 +549,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -553,6 +564,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a valuation specialist with experience in investment banking and
@@ -600,7 +613,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -615,6 +628,8 @@ tasks:
     type: claude
     depends_on: [build_index]
     config:
+      model: claude-sonnet-4-6
+      max_budget_usd: 2.00
       mcp_config: [mcp-research.json]
       prompt: |
         You are a compliance officer and risk analyst with experience in regulatory
@@ -662,7 +677,7 @@ tasks:
           - Run additional search_index.py queries with different search terms
           - Try alternative MCP tool calls with different parameters
           Repeat until all brief questions are addressed or you've exhausted available
-          sources (max 3 additional search rounds).
+          sources (max 2 additional search rounds).
 
         ${research_output_instructions}
 
@@ -692,6 +707,7 @@ tasks:
     type: claude
     depends_on: [chunk_research]
     config:
+      model: claude-haiku-4-5
       prompt: |
         Read lancedb/research_chunks.json. Each chunk already has a primary tag from its source file.
         Your job is to add ADDITIONAL cross-relevant tags only.
@@ -736,6 +752,7 @@ tasks:
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: |
         You are a senior equity research analyst writing a professional report on ${company_name} (${symbol}).
         Read and follow the style guide at ../../STYLE.md.
@@ -800,7 +817,7 @@ tasks:
           Be specific — include figures, dates, and context for why each development matters.
           Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 1. Company Profile
+        Begin the section with a top-level heading in this exact format: ## 1. Company Profile
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_1_profile.md
@@ -808,7 +825,7 @@ tasks:
         ${artifact_context_inline}
 
       hard_checks:
-        - "startswith: # 1. Company Profile"
+        - "startswith: ## 1. Company Profile"
         # - "min_length: x"
         # - "max_length: x"
         # - "startswith: TEXT"
@@ -881,6 +898,7 @@ tasks:
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -957,12 +975,12 @@ tasks:
         Show trends in revenues, margins, and key financial metrics using tables.
         Analyse dynamics, margin trade-offs, cannibalization, concentration risks.
 
-        Begin the section with a top-level heading in this exact format: # 2. Business Model
+        Begin the section with a top-level heading in this exact format: ## 2. Business Model
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_2_business_model.md
       hard_checks:
-        - "startswith: # 2. Business Model"
+        - "startswith: ## 2. Business Model"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1030,6 +1048,7 @@ tasks:
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -1071,17 +1090,22 @@ tasks:
         Write Section 3 of an equity research report on ${ticker}: Competitive Landscape.
 
         Cover:
-        • Identify their main competitors, including direct, adjacent, and emerging competitors.
-        • Compare key metrics such as market share, product differentiation, pricing power, and growth trajectories.
+        • Identify the main competitors — direct, adjacent, and emerging — and their value propositions.
+        • For each significant competitor, compare: revenue scale, market share, product lineup differences,
+          specific competitive advantages or threats, and any vulnerabilities relative to ${ticker}.
+        • Analyze trends in the competitive environment: where unit and dollar market share is being gained
+          or lost, whether shifts are structural or cyclical, evidence of increasing or decreasing pricing power.
+        • Discuss emerging or potential disruptors and the risk of disruption from adjacent markets.
+        • Include a peer comparison table with key metrics (revenue, margins, growth, valuation multiples).
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 3. Competitive Landscape
+        Begin the section with a top-level heading in this exact format: ## 3. Competitive Landscape
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_3_competitive.md
       hard_checks:
-        - "startswith: # 3. Competitive Landscape"
+        - "startswith: ## 3. Competitive Landscape"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1149,6 +1173,7 @@ tasks:
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -1190,17 +1215,25 @@ tasks:
         Write Section 4 of an equity research report on ${ticker}: Supply Chain Positioning.
 
         Cover:
-        • Describe their role in the upstream (supplier-side) and downstream (customer/distribution) parts of the supply chain.
-        • Identify key suppliers, partners, distributors, and any major dependencies or concentrations.
+        • Describe the company's role in the upstream (supplier-side) and downstream (customer/distribution)
+          parts of the value chain.
+        • Identify key suppliers, manufacturing partners, and input dependencies (raw materials, components).
+        • Assess supplier concentration risk — single-source or limited-source dependencies.
+        • Analyze geographic exposure of the supply chain: countries, regions, trade route risks, tariff
+          and sanctions exposure.
+        • Discuss logistics and distribution infrastructure, inventory management approach, and working
+          capital implications.
+        • Note any recent supply chain disruptions, changes, or vertical integration decisions.
+        • Identify downstream distribution channels and customer concentration risks.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 4. Supply Chain Positioning
+        Begin the section with a top-level heading in this exact format: ## 4. Supply Chain Positioning
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_4_supply_chain.md
       hard_checks:
-        - "startswith: # 4. Supply Chain Positioning"
+        - "startswith: ## 4. Supply Chain Positioning"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1264,10 +1297,11 @@ tasks:
 
   write_financial:
     sort_order: 34
-    description: "Write Section 5: Financial and Operating Leverage"
+    description: "Write Section 5: Financial Strength"
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -1306,7 +1340,7 @@ tasks:
         - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
           per the Source Reliability Hierarchy in STYLE.md
 
-        Write Section 5 of an equity research report on ${ticker}: Financial and Operating Leverage.
+        Write Section 5 of an equity research report on ${ticker}: Financial Strength.
 
         Cover:
         • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings).
@@ -1316,12 +1350,12 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 5. Financial and Operating Leverage
+        Begin the section with a top-level heading in this exact format: ## 5. Financial Strength
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_5_financial.md
       hard_checks:
-        - "startswith: # 5. Financial and Operating Leverage"
+        - "startswith: ## 5. Financial Strength"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1381,7 +1415,7 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_5_financial.md", format: md, description: "Section 5: Financial and operating leverage covering debt, margins, cash flow, and capital allocation"}
+      section: {path: "artifacts/section_5_financial.md", format: md, description: "Section 5: Financial strength covering debt, margins, cash flow, and capital allocation"}
 
   write_valuation:
     sort_order: 35
@@ -1389,6 +1423,7 @@ tasks:
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -1437,12 +1472,12 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 6. Valuation
+        Begin the section with a top-level heading in this exact format: ## 6. Valuation
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_6_valuation.md
       hard_checks:
-        - "startswith: # 6. Valuation"
+        - "startswith: ## 6. Valuation"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1506,10 +1541,11 @@ tasks:
 
   write_risk_news:
     sort_order: 36
-    description: "Write Section 7: Recent Developments, News and Risk Factors"
+    description: "Write Section 7: Risks"
     type: claude
     depends_on: [append_index]
     config:
+      max_budget_usd: 1.50
       system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
@@ -1548,7 +1584,7 @@ tasks:
         - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
           per the Source Reliability Hierarchy in STYLE.md
 
-        Write Section 7 of an equity research report on ${ticker}: Recent Developments, News and Risk Factors.
+        Write Section 7 of an equity research report on ${ticker}: Risks.
 
         Use the comprehensive research data available. Key sources are in the LanceDB index (query via search_index.py above).
         Structured data is inline above. Text sources (news stories, risk analysis, investment thesis, SEC filings)
@@ -1563,12 +1599,12 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
-        Begin the section with a top-level heading in this exact format: # 7. Recent Developments, News and Risk Factors
+        Begin the section with a top-level heading in this exact format: ## 7. Risks
         Use ## for subsection headings within.
 
         Save results in markdown format to drafts/section_7_risk_news.md
       hard_checks:
-        - "startswith: # 7. Recent Developments, News and Risk Factors"
+        - "startswith: ## 7. Risks"
       hard_check_retries: 2
       n_iterations: 1
       critic_prompt: |
@@ -1628,7 +1664,7 @@ tasks:
       critic_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       rewrite_disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
     outputs:
-      section: {path: "artifacts/section_7_risk_news.md", format: md, description: "Section 7: Recent developments, news, and risk factors from deep research"}
+      section: {path: "artifacts/section_7_risk_news.md", format: md, description: "Section 7: Risks — recent developments, news, and risk factors from deep research"}
 
   cross_check:
     sort_order: 37
@@ -1725,6 +1761,7 @@ tasks:
         ${artifact_context_inline}
 
         read the report body at artifacts/assembled_body.md carefully and write a concluding 1-3 short paragraphs < 500 words total.
+            • Start with title header "## Conclusion: Investment Thesis"
             • Summarize the company's strategic position and the stock's investment risk/reward profile
             • Do not repeat at length but draw on the most salient points from the report body: SWOT, bull/bear cases, risk assessment, and monitoring watchpoints.
 
@@ -1732,8 +1769,8 @@ tasks:
 
         Save results in markdown format to drafts/conclusion.md.
       hard_checks:
-        - "startswith: # Investment Conclusion"
-        - "max_length: 4000"
+        - "startswith: ## Conclusion: Investment Thesis"
+        - "max_length: 1500"
       hard_check_retries: 2
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
@@ -1757,11 +1794,15 @@ tasks:
 
         read the report body at artifacts/assembled_body.md and the conclusion at artifacts/conclusion.md carefully, then write a short introductory paragraph < 100 words.
 
+        start with "## Introduction" header.
+
         Use a straightforward, factual tone throughout the analysis.
 
         Save results in markdown format to drafts/intro.md.
       hard_checks:
-        - "max_length: 4000"
+        - "max_length: 1000"
+        - "startswith: ## Introduction"
+
       hard_check_retries: 2
       rewrite_prompt: |
         Read the current draft at ${draft_path} and the critique at ${critique_path}.
@@ -1812,14 +1853,15 @@ tasks:
 
         Evaluate the report for:
         - Following the structure exactly, with these exact numbered headings and no missing sections
-          - 1. Introduction
-          - 2. Company Profile
-          - 3. Business Model
-          - 4. Competitive Landscape
-          - 5. Supply Chain Positioning
-          - 6. Financial Profile
+          - Introduction (not numbered)
+          - 1. Company Profile
+          - 2. Business Model
+          - 3. Competitive Landscape
+          - 4. Supply Chain Positioning
+          - 5. Financial Strength
+          - 6. Valuation
           - 7. Risks
-          - 8. Investment Thesis and Conclusion
+          - Conclusion: Investment Thesis
         - Clarity and readability
         - Repetition; similar details and points should not be repeated in different sections. As an example, early summary sections and later concluding sections can REFER to e.g. supply chain issues but SHOULD NOT detail at length the same issues discussed comprehensively in the supply chain part of the report.
         - Factual accuracy and consistency
@@ -1846,36 +1888,46 @@ tasks:
     config:
       system: "You are a senior equity research analyst revising a report based on editorial feedback. Read and follow the style guide at ../../STYLE.md."
       model: claude-sonnet-4-6
-      max_budget_usd: 1.00
-      disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
-      artifacts_inline:
-        - artifacts/manifest.json
-        - artifacts/profile.json
-        - artifacts/key_ratios.csv
-        - artifacts/analyst_recommendations.json
-        - artifacts/technical_analysis.json
-        - artifacts/8k_summary.json
+      max_budget_usd: 10.00
+      timeout: 3600
+      pre_copy:
+        - from: artifacts/report_body.md
+          to: artifacts/report_body_final.md
+      disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch]
       prompt: |
-        ${artifact_context_inline}
+        ## Your task
 
-        Read the critique at artifacts/report_critique.md and the current report text at artifacts/report_body.md.
+        Revise artifacts/report_body.md based on the critique at artifacts/report_critique.md.
+        The output must be saved to artifacts/report_body_final.md.
 
-        Carefully address each issue identified in the critique:
-        - Improve clarity and readability
-        - Remove repetition and duplication. If you find the same information repeated, keep only the best version, update it with any useful information from other versions, and replace other versions with a reference like "as detailed in Section X".
-        - Fix factual inaccuracies or inconsistencies. Attempt to verify in the available artifacts. Delete statements or make them more general rather than embarking on new research.
-        - Elaborate on missing or incomplete analysis. Again, use existing artifacts rather than going down a new rabbit hole.
-        - Improve logical flow and structure
-        - Enhance data quality and sourcing citations
-        - Ensure professional tone and formatting
-        - Remove or substantiate any unsupported claims using provided artifacts.
+        ## Method — CRITICAL: follow these steps in exact order
 
-        Do not introduce new information or conduct new research. Resolve using the provided artifacts.. If there is a contradiction between the critique and the artifacts, trust the artifacts. If there is a contradictin between artifacts, note the contradiction.
+        artifacts/report_body_final.md already exists as a copy of report_body.md. Your job is to edit it in place.
 
-        IMPORTANT:
-          - this report will be assembled with a header including title, charts, technical analysis, peer comparison table. Return only the body text starting at section 1, Introduction, without any title or header.
+        Step 1. Read artifacts/report_critique.md. Summarize each critique item as a one-line bullet (item number + what to fix + approximate line range).
 
-        Save the revised report to artifacts/report_body_final.md.
+        Step 2. Process critique items ONE AT A TIME on artifacts/report_body_final.md:
+           a. Read ONLY the 20-40 lines around the issue (use offset/limit — NEVER read the whole file)
+           b. Apply the fix with the Edit tool
+           c. Move to the next item immediately — do not plan ahead or re-read other sections
+
+        Step 3. After all edits are complete, spot-check: read the the 1st and last 20 lines to confirm the file is intact.
+
+        ## CONTEXT BUDGET RULES — if you violate these, the task will fail
+
+        - NEVER read the full report body file. Only read 20-50 lines at a time using offset/limit.
+        - NEVER try to rewrite the entire file — use Edit for surgical changes
+        - Keep thinking SHORT. Do not analyze all items at once. Process them one by one.
+        - For file reads, only read artifacts/report_critique.md and small sections (20-50 lines) of artifacts/report_body_final.md. Reference data is provided inline above — do not read additional artifact files.
+
+        ## Edit guidelines
+
+        - Remove repetition and duplication. Keep only the best version and merge others into it; replace others with a reference like "as detailed in Section X".
+        - Fix factual inaccuracies using the inline artifacts. Delete statements or make them general rather than embarking on new research.
+        - Improve clarity, logical flow, tone, and formatting.
+        - Do not introduce new information or conduct new research. If there is a contradiction between the critique and the artifacts, trust the artifacts. If there is a contradiction between artifacts, note it.
+
+        IMPORTANT: this report will be assembled with a header including title, charts, technical analysis, peer comparison table. The body text must start at "## Introduction", without any title or header.
     outputs:
       final_report: {path: "artifacts/report_body_final.md", format: md, description: "Final polished report incorporating all critique feedback and revisions"}
 
