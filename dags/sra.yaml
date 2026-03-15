@@ -1778,52 +1778,52 @@ tasks:
     outputs:
       section: {path: "artifacts/conclusion.md", format: md, description: "Report conclusion: SWOT analysis, bull/bear cases, risk assessment, and monitoring watchpoints"}
 
-  write_intro:
-    sort_order: 40
-    description: Write the main report intro
-    type: claude
-    depends_on: [assemble_body, write_conclusion]
-    config:
-      system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
-      disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
-      artifacts_inline:
-        - artifacts/manifest.json
-        - artifacts/profile.json
-      prompt: |
-        ${artifact_context_inline}
+  # write_intro:
+  #   sort_order: 40
+  #   description: Write the main report intro
+  #   type: claude
+  #   depends_on: [assemble_body, write_conclusion]
+  #   config:
+  #     system: "You are a senior equity research analyst writing a professional report. Read and follow the style guide at ../../STYLE.md."
+  #     disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
+  #     artifacts_inline:
+  #       - artifacts/manifest.json
+  #       - artifacts/profile.json
+  #     prompt: |
+  #       ${artifact_context_inline}
 
-        read the report body at artifacts/assembled_body.md and the conclusion at artifacts/conclusion.md carefully, then write a short introductory paragraph < 100 words.
+  #       read the report body at artifacts/assembled_body.md and the conclusion at artifacts/conclusion.md carefully, then write a short introductory paragraph < 100 words.
 
-        start with "## Introduction" header.
+  #       start with "## Introduction" header.
 
-        Use a straightforward, factual tone throughout the analysis.
+  #       Use a straightforward, factual tone throughout the analysis.
 
-        Save results in markdown format to drafts/intro.md.
-      hard_checks:
-        - "max_length: 1000"
-        - "startswith: ## Introduction"
+  #       Save results in markdown format to drafts/intro.md.
+  #     hard_checks:
+  #       - "max_length: 1000"
+  #       - "startswith: ## Introduction"
 
-      hard_check_retries: 2
-      rewrite_prompt: |
-        Read the current draft at ${draft_path} and the critique at ${critique_path}.
-        Address each issue identified. Save the revised version to ${rewrite_path}.
-    outputs:
-      section: {path: "artifacts/intro.md", format: md, description: "Short introductory paragraph (<100 words) summarizing the report scope and key findings"}
+  #     hard_check_retries: 2
+  #     rewrite_prompt: |
+  #       Read the current draft at ${draft_path} and the critique at ${critique_path}.
+  #       Address each issue identified. Save the revised version to ${rewrite_path}.
+  #   outputs:
+  #     section: {path: "artifacts/intro.md", format: md, description: "Short introductory paragraph (<100 words) summarizing the report scope and key findings"}
 
   assemble_text:
     sort_order: 41
-    description: Assemble the 3 text sections into a complete report
+    description: Assemble the 2 text sections into a complete report
     type: python
-    depends_on: [assemble_body,write_conclusion, write_intro]
+    depends_on: [assemble_body,write_conclusion]
     config:
       script: skills/render_template.py
       args:
         template: templates/assemble_report.md.j2
         output: "${workdir}/artifacts/report_body.md"
         json: "${workdir}/artifacts/profile.json"
-        file: "intro=${workdir}/artifacts/intro.md body=${workdir}/artifacts/assembled_body.md conclusion=${workdir}/artifacts/conclusion.md"
+        file: "body=${workdir}/artifacts/assembled_body.md conclusion=${workdir}/artifacts/conclusion.md"
     outputs:
-      body_text: {path: "artifacts/report_body.md", format: md, description: "Assembled full report: intro + body sections 2-8 + conclusion in final markdown format"}
+      body_text: {path: "artifacts/report_body.md", format: md, description: "Assembled full report: body sections 2-8 + conclusion in final markdown format"}
 
   critique_body_final:
     sort_order: 42
@@ -1853,7 +1853,6 @@ tasks:
 
         Evaluate the report for:
         - Following the structure exactly, with these exact numbered headings and no missing sections
-          - Introduction (not numbered)
           - 1. Company Profile
           - 2. Business Model
           - 3. Competitive Landscape
@@ -1927,7 +1926,7 @@ tasks:
         - Improve clarity, logical flow, tone, and formatting.
         - Do not introduce new information or conduct new research. If there is a contradiction between the critique and the artifacts, trust the artifacts. If there is a contradiction between artifacts, note it.
 
-        IMPORTANT: this report will be assembled with a header including title, charts, technical analysis, peer comparison table. The body text must start at "## Introduction", without any title or header.
+        IMPORTANT: this report will be assembled with a header including title, charts, technical analysis, peer comparison table. The body text must start at "1. Company Profile, without any title or header.
     outputs:
       final_report: {path: "artifacts/report_body_final.md", format: md, description: "Final polished report incorporating all critique feedback and revisions"}
 
