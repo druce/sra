@@ -950,12 +950,8 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
-        - artifacts/income_statement.csv
-        - artifacts/balance_sheet.csv
-        - artifacts/cash_flow.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1094,12 +1090,8 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
-        - artifacts/income_statement.csv
-        - artifacts/balance_sheet.csv
-        - artifacts/cash_flow.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1244,12 +1236,8 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
-        - artifacts/income_statement.csv
-        - artifacts/balance_sheet.csv
-        - artifacts/cash_flow.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1369,12 +1357,8 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
-        - artifacts/income_statement.csv
-        - artifacts/balance_sheet.csv
-        - artifacts/cash_flow.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1497,12 +1481,12 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
         - artifacts/income_statement.csv
         - artifacts/balance_sheet.csv
         - artifacts/cash_flow.csv
+        - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1619,12 +1603,12 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
         - artifacts/income_statement.csv
         - artifacts/balance_sheet.csv
         - artifacts/cash_flow.csv
+        - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1741,12 +1725,8 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
-        - artifacts/key_ratios.csv
-        - artifacts/income_statement.csv
-        - artifacts/balance_sheet.csv
-        - artifacts/cash_flow.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1869,7 +1849,7 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/key_ratios.csv
       prompt: |
         Read all 7 section artifacts:
@@ -1943,7 +1923,7 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/peers_list.json
         - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
@@ -2028,7 +2008,7 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
@@ -2145,7 +2125,7 @@ tasks:
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, Bash, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
-        - artifacts/profile.json
+        - artifacts/key_facts.json
         - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
       prompt: |
