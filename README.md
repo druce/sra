@@ -11,7 +11,7 @@ A steerable general research and report-writing pipeline powered by Claude Code.
 
 The full report generation steps and dependencies are defined as a directed acyclic graph (DAG); `research.py` then runs all data gathering and information processing steps to produce a structured report — equity research, or other user-defined inputs, outputs, and research pipeline steps. The DAG makes it more repeatable compared to a skill with a bullet list of things to put in the report.
 
-Enhances the [Claude for Financial Services plugins](https://github.com/anthropics/financial-services-plugins/blob/main/equity-research/skills/initiating-coverage/references/task5-report-assembly.md) by splits up prompts for each section, adding hard quality gates, LanceDB RAG, critic-optimizer loops, and assembly via Jinja instead of prompts. 
+Enhances the [Claude for Financial Services plugins](https://github.com/anthropics/financial-services-plugins/tree/main/equity-research/skills/initiating-coverage) by splitting up prompts for each section, adding hard quality gates, LanceDB RAG, adding critic-optimizer loops, and assembly via Jinja instead of prompts. 
 
 ## Example Report
 
