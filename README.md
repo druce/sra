@@ -11,7 +11,7 @@ A steerable research and report-writing pipeline powered by Claude Code. Define 
 
 ## Example Report
 
-[NVDA — March 16, 2026](https://github.com/druce/deep-research-machine/blob/master/work/NVDA_20260316/artifacts/final_report.md)
+[NVDA — March 16, 2026](https://github.com/druce/deep-research-machine/raw/master/AMZN.pdf)
 
 ## How It Works
 
