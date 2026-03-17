@@ -81,7 +81,7 @@ Colors: blue = data gathering & indexing, purple = research, orange = writing & 
 
 | What | Where | How |
 |------|-------|-----|
-| **Research questions** | `custom_prompts.json` in workdir | Add investigation prompts run by parallel Claude subprocesses |
+| **Research questions** | `custom_prompts.json` in workdir | At the start of the worklow, add specific investigation questions/prompts |
 | **Report sections** | `dags/sra.yaml` | Add, remove, or reorder sections; adjust dependencies |
 | **Writing prompts** | `dags/sra.yaml` task configs | Edit the system/user prompts for each writer and critic |
 | **Style guide** | `STYLE.md` | Set tone, source hierarchy, formatting rules |
