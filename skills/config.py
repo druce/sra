@@ -113,7 +113,7 @@ CLAUDE_MAX_OUTPUT_TOKENS = 16000
 # ============================================================================
 SEC_FILING_FORMS = ['10-K', '10-Q', '8-K']
 SEC_LOOKBACK_DAYS = 365
-SEC_10K_ITEMS = ['Item 1', 'Item 1A', 'Item 7']
+SEC_10K_ITEMS = ['Item 1', 'Item 1A', 'Item 3', 'Item 7', 'Item 7A']
 SEC_10Q_ITEMS = ['Item 2']  # MD&A (Item 2 in 10-Q maps to Item 7 in 10-K)
 
 # ============================================================================

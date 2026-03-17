@@ -45,6 +45,7 @@ from fetch_edgar.filing_items import (  # noqa: E402
     _10Q_ITEM_MAP,
     _8K_ITEM_MAP,
 )
+from fetch_edgar.sec_text_cleaner import clean_sec_text, is_material_8k  # noqa: E402
 
 
 load_environment()
@@ -297,6 +298,12 @@ def get_recent_8k(
 
                 summaries.append(summary_entry)
 
+                # --- Skip immaterial 8-K filings ---
+                if not is_material_8k(items_reported):
+                    logger.info("8-K %s (%s): skipping immaterial filing (items: %s)",
+                                date_str, accession, items_reported)
+                    continue
+
                 # --- Download full document text ---
                 try:
                     content = None
@@ -314,6 +321,8 @@ def get_recent_8k(
                         logger.warning("8-K %s (%s): no meaningful content, skipping download",
                                        date_str, accession)
                         continue
+
+                    content = clean_sec_text(content, form_type="8-K")
 
                     # Determine unique filename
                     base_name = f"sec_8k_{date_str}"

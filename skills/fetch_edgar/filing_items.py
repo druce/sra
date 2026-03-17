@@ -19,6 +19,7 @@ import edgar
 
 from config import SEC_FILING_FORMS, SEC_LOOKBACK_DAYS, SEC_10K_ITEMS, SEC_10Q_ITEMS
 from utils import ensure_directory
+from fetch_edgar.sec_text_cleaner import clean_sec_text
 
 
 logger = logging.getLogger(__name__)
@@ -266,6 +267,7 @@ def get_10k_items(
                                    accession, item_key)
                     continue
 
+                text = clean_sec_text(text, form_type="10-K")
                 extracted[item_key] = text
 
                 # Determine filename
@@ -381,6 +383,7 @@ def get_10q_items(
                                    accession, item_key)
                     continue
 
+                text = clean_sec_text(text, form_type="10-Q")
                 extracted[item_key] = text
 
                 # Determine filename
