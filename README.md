@@ -128,7 +128,8 @@ ALPHAVANTAGE_API_KEY=...  # Alpha Vantage (MCP research agents)
 PERPLEXITY_API_KEY=...    # Perplexity AI (optional, MCP research)
 ```
 
-No `ANTHROPIC_API_KEY` needed — all Claude tasks run via the Claude Code CLI subprocess.
+No `ANTHROPIC_API_KEY` needed if running with MAX subscription — all Claude tasks run via the Claude Code CLI subprocess.
+In fact make sure to undefine it with MAX subscription or you will consume a lot of API tokens. 
 
 ### Run
 
