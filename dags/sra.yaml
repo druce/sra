@@ -1404,6 +1404,12 @@ tasks:
           the trend signals about demand visibility or margin risk
         Every paragraph must answer "so what does this mean for the investment case?"
 
+        **Peer and historical context**: When citing key supply chain metrics (inventory days,
+        working capital ratios, supplier concentration, capex intensity), contextualize them
+        against peers or the company's own history. Use the peers list and financial data in
+        artifacts/ to ground comparisons. A number without context is a fact; a number with
+        context is insight.
+
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
         Begin the section with a top-level heading in this exact format: ## 4. Supply Chain Positioning
