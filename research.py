@@ -889,10 +889,64 @@ def parse_args() -> argparse.Namespace:
         "--length", choices=["short", "standard", "long"], default="standard",
         help="Report section length preset (default: standard)",
     )
+    parser.add_argument(
+        "--reload-yaml", action="store_true",
+        help="Re-read DAG YAML and update task params in DB before running (use with --task)",
+    )
     return parser.parse_args()
 
 
-async def run_single_task(ticker: str, task_id: str, workdir: Path) -> int:
+def _reload_task_from_yaml(
+    dag_file: str, task_id: str, ticker: str, workdir: Path, conn: "sqlite3.Connection",
+) -> None:
+    """Re-parse DAG YAML and update a single task's params in the DB."""
+    import yaml
+    from jinja2 import Environment as JEnv, BaseLoader, Undefined
+
+    dag_path = Path(dag_file)
+    if not dag_path.exists():
+        raise RuntimeError(f"DAG file not found: {dag_path}")
+
+    # Determine length preset from stored dag_var (set during init)
+    row = conn.execute(
+        "SELECT value FROM dag_vars WHERE name = 'length_preset'"
+    ).fetchone()
+    length = row["value"] if row else "standard"
+
+    raw_text = dag_path.read_text()
+    jinja_vars = {"SHORT": length == "short", "LONG": length == "long", "LENGTH": length}
+    rendered = JEnv(loader=BaseLoader(), undefined=Undefined,
+                    keep_trailing_newline=True).from_string(raw_text).render(jinja_vars)
+    raw = yaml.safe_load(rendered)
+
+    variables = {"ticker": ticker, "date": workdir.name.split("_", 1)[1], "workdir": str(workdir)}
+
+    from schema import load_dag
+    dag = load_dag(raw, variables)
+
+    if task_id not in dag.tasks:
+        raise RuntimeError(f"Task '{task_id}' not found in DAG YAML")
+
+    task = dag.tasks[task_id]
+    params = task.config.model_dump()
+    params["outputs"] = {k: v.model_dump() for k, v in task.outputs.items()}
+    if task.sets_vars:
+        params["sets_vars"] = {k: v.model_dump() for k, v in task.sets_vars.items()}
+
+    # Resolve DAG-level vars
+    dag_level_vars = dag.dag.vars or {}
+    if dag_level_vars:
+        all_vars = {**dag_level_vars, **variables}
+        params = _substitute_vars(params, all_vars)
+
+    conn.execute("UPDATE tasks SET params = ? WHERE id = ?", (json.dumps(params), task_id))
+    conn.commit()
+    log(f"Reloaded task '{task_id}' params from {dag_file}")
+
+
+async def run_single_task(
+    ticker: str, task_id: str, workdir: Path, *, reload_yaml: bool = False, dag_file: str = "dags/sra.yaml",
+) -> int:
     """Run a single task by ID. Check deps, dispatch, process, return exit code."""
     import sqlite3
 
@@ -913,6 +967,15 @@ async def run_single_task(ticker: str, task_id: str, workdir: Path) -> int:
         log(f"ERROR: Task '{task_id}' not found in DAG")
         log(f"Available tasks: {', '.join(available)}")
         return 1
+
+    # Reload task params from YAML if requested
+    if reload_yaml:
+        try:
+            _reload_task_from_yaml(dag_file, task_id, ticker, workdir, conn)
+        except RuntimeError as e:
+            conn.close()
+            log(f"ERROR: {e}")
+            return 1
 
     # Check dependencies
     deps = conn.execute(
@@ -982,7 +1045,10 @@ async def main() -> int:
 
     if args.task:
         workdir = Path("work") / f"{ticker}_{args.date}"
-        return await run_single_task(ticker, args.task, workdir)
+        return await run_single_task(
+            ticker, args.task, workdir,
+            reload_yaml=args.reload_yaml, dag_file=args.dag,
+        )
 
     if args.resume:
         log(f"Resuming research pipeline for {ticker}")
