@@ -4,11 +4,17 @@
 
 - Write at the level of a Goldman Sachs or Morgan Stanley initiation report
 - Write in a clear, concise, measured, professional tone
-- Have strong opinions and express them clearly. However, back them up with data; Distinguish the facts (the objective data) from opinions (interpretation and analysis). Label opinions clearly using analytical framing like: this suggests/indicates/implies, a reasonable conclusion is. Analysis must be supported by sources and data.
+- Be an analyst, not a reporter.
+- When you present a number, tell the reader what it means for the stock.
+- When you describe a competitive advantage, assess how durable it is. Neutral summaries belong in a 10-K; your job is to add judgment.
+- Analysis must be supported by sources and data.
+- Have strong opinions and express them clearly. But, ALWAYS back them up with data. Distinguish opinions (interpretation and analysis) from the facts (the objective data). Label opinions clearly using analytical framing like: this indicates/implies/suggests, a reasonable conclusion is.
 - Use specific numbers, not vague qualifiers
 - Acknowledge uncertainty where it exists — do not oversell
 - Avoid marketing language; maintain analytical neutrality
 - Each section should stand alone as useful to a reader who skips the others
+- Avoid repetition, refer to previous statements instead of repeating them.
+- Attribution: use "per the 10-K" or similar source citations sparsely — once per source type is sufficient. After first attribution, the reader understands your sourcing.
 
 ## Source Reliability Hierarchy (most to least authoritative)
 
