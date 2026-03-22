@@ -910,6 +910,9 @@ tasks:
       system: |
         You are a senior equity research analyst writing a professional report on ${company_name} (${symbol}).
         Read and follow the style guide at ../../STYLE.md.
+        Style rules: Never use promotional language ("exceptional", "formidable", "insatiable", "extraordinary"). State facts and let the numbers speak. Avoid throat-clearing ("The investment case centers on", "It is worth noting", "underscoring") and academic hedging ("a dynamic rooted in"). Write in the understated, precise tone of a Goldman Sachs initiation — confident but never breathless.
+        Be an analyst, not a reporter. When you present a number, tell the reader what it means for the stock. When you describe a competitive advantage, assess how durable it is. Neutral summaries belong in a 10-K; your job is to add judgment.
+        Attribution: use "per the 10-K" or similar source citations sparingly — once per source type is sufficient. After first attribution, the reader understands your sourcing.
       disallowed_tools: [WebSearch, WebFetch, Agent, Skill, yfinance, alphavantage, brave-search, wikipedia, openbb-mcp, playwright, fetch, filesystem]
       artifacts_inline:
         - artifacts/manifest.json
@@ -921,6 +924,7 @@ tasks:
       prompt: |
         {% if SHORT %}LENGTH GUIDANCE: Aim for 500-800 words. Be concise — key points only, minimal narrative.{% endif %}
         {% if LONG %}LENGTH GUIDANCE: Aim for 1000-1500 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
+        {% if not SHORT and not LONG %}LENGTH GUIDANCE: Target 800-1200 words. This is a hard constraint — do not exceed 1200 words. Prioritize density over coverage; cut any sentence that doesn't serve the investment case.{% endif %}
 
         Your task is to use the gathered source material to write an extended narrative
         company profile, including founding story, company history with key milestones
@@ -945,25 +949,27 @@ tasks:
           - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
             per the Source Reliability Hierarchy in STYLE.md
 
+          **Analytical framing rule**: Every key data point must be followed by its investment implication — the "so what." Don't just state that revenue grew 68%; explain what that growth rate signals about demand durability, competitive position, or margin trajectory. A paragraph that only lists facts without connecting them to the investment case fails this test.
+
           Structure as follows:
           1 paragraph executive summary covering: what the company does, its scale (revenue, market cap,
-          employees, geographic footprint), and what makes it an interesting from an investment perspective.
+          employees), and what makes it interesting from an investment perspective.
 
-          ## History and Key Milestones
-          1-3 paragraph narrative origin story: founding circumstances, founders, early vision. Then walk through the
-          critical inflection points — pivots, product launches, IPO, major acquisitions, near-death
-          experiences, and transformative moments — that explain how the company became what it is
-          today. Emphasize events that shaped the current competitive position or business model.
-          Include approximate dates.
+          ## History and Key Milestones (~250 words)
+          1 paragraph covering: founding date, founders, IPO date, and then ONLY the milestones
+          that directly explain the company's current competitive position (e.g., key product launches,
+          major acquisitions with $ amounts, strategic pivots). Skip colorful anecdotes, early failures,
+          and biographical detail unless they directly explain the current business model.
+          Every sentence must pass the test: "Would a portfolio manager care about this?"
 
           ## Core Business and Investment Highlights
             Cover in 1-3 paragraphs:
             - Revenue segments with approximate size and growth trajectory
-            - Primary products/services and what differentiates them
             - Business model (how the company actually makes money)
             - Sources of competitive advantage (network effects, switching costs, IP, scale, distribution)
-            - Key metrics investors track (unit economics, margins, retention, utilization, etc.)
-            - The central tension or debate in the investment case (e.g., "priced as X, may become Y")
+            - Key metrics investors track (margins, growth rates, returns on capital)
+            - The central tension or debate in the investment case
+            End each paragraph with its investment implication — what the data means for the stock.
 
           ## Recent Developments
             Cover in 1 paragraph the most significant developments from the past 12 months that materially
@@ -986,8 +992,8 @@ tasks:
         # - "startswith: TEXT"
         # - "contains: TEXT"
         # - "regex: PATTERN"
-      hard_check_retries: 2
-      n_iterations: 1
+      hard_check_retries: 0
+      n_iterations: 0
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
@@ -1063,12 +1069,15 @@ tasks:
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
+        - artifacts/income_statement.csv
+        - artifacts/key_ratios.csv
       prompt: |
         ${artifact_context_inline}
 
         Before writing, retrieve all research material tagged for this section:
           Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections business_model
-        These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
+        Then retrieve targeted competitive evidence:
+          Run: uv run python skills/search_index/search_index.py --query "market share switching costs competitive advantage CUDA ecosystem" --top-k 15 --workdir ${workdir}
         Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
 
@@ -1088,45 +1097,39 @@ tasks:
         - If sources conflict: acknowledge the discrepancy and explain which you weight more heavily,
           per the Source Reliability Hierarchy in STYLE.md
 
-        {% if SHORT %}LENGTH GUIDANCE: Aim for 200-400 words. Be concise — key points only, minimal narrative.{% endif %}
-        {% if LONG %}LENGTH GUIDANCE: Aim for 1500-2500 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
+        {% if SHORT %}LENGTH GUIDANCE: Aim for 400-600 words. Be concise — key points only, minimal narrative.{% endif %}
+        {% if LONG %}LENGTH GUIDANCE: Aim for 2500-3500 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
+        {% if not SHORT and not LONG %}LENGTH GUIDANCE — HARD CONSTRAINT: The section MUST be 1200-1800 words. Outputs over 1800 words are unacceptable and will be rejected. Count your words before finalizing. Use the subsection word budgets below as your guide.{% endif %}
         Write Section 2 of an equity research report on ${ticker}: Business Model.
 
-        Cover:
-        • Core businesses, products and services.
-        • Key revenue streams, customer segments, relative importances, and monetization strategies with data.
-        • Recent changes, product launches, discontinuations, or pivots; nascent businesses or option-value segments
-        • Analyze key monetization characteristics of the businesses it operates in:
-          - model: one-time sale, subscription, b2b vs b2c etc.
-          - customer types
-          - customer acquisition and retention dynamics (CAC, sales cycles, switching costs, brand dynamics, distribution model)
-          - seasonal or cyclical business patterns
-          - margin structures and dynmaics by segment
-          - market size, addressable size, current share, growth trajectory and factors affecting them
+        Structure the section into EXACTLY these 5 subsections with word budgets:
 
-        • Explain sources of competitive advantage such as
-          - network effects
-          - switching costs
-          - scale
-          - distribution
-          - vertical integration
-          - exclusive relationships
-          - branding
-          - intellectual property
-          - regulatory moats
-          - and other barriers to entry.
+        ### Revenue Mix & Segments (~300 words)
+        Core businesses, products, and services. Revenue breakdown by segment with a single summary table.
+        Customer segments, concentration, and monetization model (one-time vs recurring, B2B vs B2C).
+        Include TAM, SAM, current market share, and growth trajectory for the primary market.
 
-        • Growth Drivers and Capital Allocation
-          - Key organic growth vectors (new products, geographies, segments)
-          - Capital expenditure level and stated priorities
-          - Capital structure and expense structure vs. peers
-          - Capital return policy (dividends, buybacks, dilution)
-          - Any M&A strategy or recent transactions
+        ### Monetization & Margin Dynamics (~250 words)
+        Margin structure by segment with one trend table (3-4 years). Seasonal/cyclical patterns.
+        Key dynamics: mix shifts, operating leverage, margin trade-offs. Compare to peers in prose, not a separate table.
+
+        ### Competitive Advantages (~300 words)
+        The 2-3 most important moats with EVIDENCE (market share data, switching cost quantification, scale metrics).
+        Do not enumerate every possible moat — focus on the ones that most protect the investment case.
+
+        ### Growth Drivers & Capital Allocation (~250 words)
+        Key organic growth vectors, recent product launches/pivots, nascent option-value segments.
+        Note any recent management changes, strategic pivots, or discontinuations.
+        Capital allocation summary: capex, buybacks, dividends, M&A strategy. One table max.
+
+        ### Risks to the Model (~100 words)
+        2-3 sentence bridge to the risk section — name the key structural tensions only.
 
         Use a straightforward, factual tone throughout the analysis.
         Focus on data, observable facts, and how they compare with competitors.
         Show trends in revenues, margins, and key financial metrics using tables.
         Analyse dynamics, margin trade-offs, cannibalization, concentration risks.
+        ANTI-REPETITION: Never cite the same number or statistic in more than one subsection. Each data point appears once, in the subsection where it is most relevant.
 
         Begin the section with a top-level heading in this exact format: ## 2. Business Model
         Use ## for subsection headings within.
@@ -1134,8 +1137,8 @@ tasks:
         Save results in markdown format to drafts/section_2_business_model.md
       hard_checks:
         - "startswith: ## 2. Business Model"
-      hard_check_retries: 2
-      n_iterations: 1
+      hard_check_retries: 0
+      n_iterations: 0
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
@@ -1208,6 +1211,7 @@ tasks:
         - artifacts/manifest.json
         - artifacts/key_facts.json
         - artifacts/peers_list.json
+        - artifacts/key_ratios.csv
         - artifacts/analyst_recommendations.json
         - artifacts/technical_analysis.json
         - artifacts/8k_summary.json
@@ -1215,7 +1219,7 @@ tasks:
         ${artifact_context_inline}
 
         Before writing, retrieve all research material tagged for this section:
-          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive
+          Run: uv run python skills/search_index/search_index.py --all --workdir ${workdir} --sections competitive financial
         These are all indexed chunks relevant to this section — data artifacts, research findings, and MCP responses.
         Use these results as your primary source alongside the inline structured data above.
         Do not call external tools or APIs — focus on synthesis from provided data.
@@ -1238,6 +1242,7 @@ tasks:
 
         {% if SHORT %}LENGTH GUIDANCE: Aim for 200-400 words. Be concise — key points only, minimal narrative.{% endif %}
         {% if LONG %}LENGTH GUIDANCE: Aim for 1500-2500 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
+        {% if not SHORT and not LONG %}LENGTH GUIDANCE: Aim for 1200-1800 words. This is a hard constraint — do not exceed 1800 words. Prioritize density over breadth: cut any paragraph that doesn't directly serve the investment case. If content exceeds 1800 words, remove the least essential subsection entirely rather than trimming everywhere.{% endif %}
         Write Section 3 of an equity research report on ${ticker}: Competitive Landscape.
 
         Cover:
@@ -1246,8 +1251,21 @@ tasks:
           specific competitive advantages or threats, and any vulnerabilities relative to ${ticker}.
         • Analyze trends in the competitive environment: where unit and dollar market share is being gained
           or lost, whether shifts are structural or cyclical, evidence of increasing or decreasing pricing power.
+          Quantify the trajectory: cite current share estimates AND where consensus or management guidance
+          projects share in 12-18 months. Distinguish between share loss in a growing TAM (benign) vs.
+          share loss in a flat TAM (threatening).
         • Discuss emerging or potential disruptors and the risk of disruption from adjacent markets.
         • Include a peer comparison table with key metrics (revenue, margins, growth, valuation multiples).
+          Sanity-check every number in the table: if any valuation multiple looks implausible for the company's
+          scale and profitability (e.g., EV/EBITDA below 10x for a large-cap tech company), flag it with a
+          footnote rather than presenting it without comment. Anomalous data erodes credibility.
+
+        **Investment implication rule**: Every competitive observation must answer "so what for the stock?"
+        After stating a competitive fact (share shift, new entrant, moat factor), add one sentence explaining
+        the investment implication — e.g., how it affects revenue trajectory, margin sustainability, or multiple.
+        Do not leave competitive data points without analytical framing.
+        IMPORTANT: Vary the phrasing of investment implications — do NOT use a repeated formula like
+        "For the stock, this means..." Weave implications naturally into the analytical flow.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
@@ -1257,8 +1275,8 @@ tasks:
         Save results in markdown format to drafts/section_3_competitive.md
       hard_checks:
         - "startswith: ## 3. Competitive Landscape"
-      hard_check_retries: 2
-      n_iterations: 1
+      hard_check_retries: 0
+      n_iterations: 0
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
