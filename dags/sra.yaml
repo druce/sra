@@ -1545,13 +1545,13 @@ tasks:
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
         Begin the section with a top-level heading in this exact format: ## 5. Financial Strength
-        Use ## for subsection headings within.
+        Use ### for subsection headings within (e.g., ### Financial Leverage, ### Operating Leverage).
 
         Save results in markdown format to drafts/section_5_financial.md
       hard_checks:
         - "startswith: ## 5. Financial Strength"
-      hard_check_retries: 2
-      n_iterations: 1
+      hard_check_retries: 0
+      n_iterations: 0
       critic_prompt: |
         Read the draft section at ${draft_path} carefully and critique it for an equity research report.
 
