@@ -1803,6 +1803,8 @@ tasks:
         • Analyst sentiment shifts and institutional ownership changes — specific rating changes, notable position changes
         • Key risk factors by category: operational risks (execution, technology, supply chain), financial risks (leverage, currency, liquidity, capital allocation), regulatory risks (antitrust, export controls, data privacy, sanctions), market risks (cyclicality, macro sensitivity, competitive disruption)
 
+        **Analyst sentiment and ownership**: Integrate specific analyst rating changes (firm name, old → new rating, date, price target change) from analyst_recommendations.json and note any significant institutional ownership shifts. Weave these into the relevant risk subsections rather than isolating them in a separate paragraph.
+
         **Risk prioritization**: Prioritize risks by materiality — impact on earnings, valuation, or competitive position. For each major risk, assess probability and magnitude, identify mitigating factors, and explain how the market is currently pricing it. Distinguish between well-known risks already priced in vs. underappreciated risks the market may be ignoring.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
