@@ -1673,6 +1673,8 @@ tasks:
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
 
+        **Investment-case framing**: For every valuation metric or multiple you present, explain what it implies for the investment case. Do not just state "NVDA trades at 16.4x forward P/E" — explain what that multiple signals about how the market is pricing the stock (e.g., "the 16.4x forward P/E — a 53% discount to the five-year average — prices in meaningful cycle risk despite accelerating earnings, suggesting upside if datacenter demand sustains"). Every number should answer "so what does this mean for whether to own the stock?"
+
         Begin the section with a top-level heading in this exact format: ## 6. Valuation
         Use ## for subsection headings within.
 
