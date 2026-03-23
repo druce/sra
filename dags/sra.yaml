@@ -1789,7 +1789,7 @@ tasks:
           per the Source Reliability Hierarchy in STYLE.md
 
         {% if SHORT %}LENGTH GUIDANCE: Aim for 200-400 words. Be concise — key points only, minimal narrative.{% endif %}
-        {% if LONG %}LENGTH GUIDANCE: Aim for 1500-2500 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
+        {% if LONG %}LENGTH GUIDANCE: Aim for 2000-2800 words. Provide comprehensive detail, rich narrative, and thorough analysis.{% endif %}
         Write Section 7 of an equity research report on ${ticker}: Risks.
 
         Use the comprehensive research data available. Key sources are in the LanceDB index (query via search_index.py above).
@@ -1797,16 +1797,19 @@ tasks:
         are indexed in LanceDB and available via search.
 
         Synthesize these sources into a comprehensive section covering:
-        • Recent corporate developments and their significance
-        • Regulatory actions, legal proceedings, and compliance
-        • Strategic partnerships, M&A activity, competitive dynamics
-        • Analyst sentiment shifts and institutional ownership changes
-        • Key risk factors by category (operational, financial, regulatory, market)
+        • Recent corporate developments and their significance — with specific dates, figures, and why each matters
+        • Regulatory actions, legal proceedings, and compliance risks — specific cases, agencies, potential financial impact
+        • Strategic partnerships, M&A activity, and competitive dynamics — named counterparties, deal terms, strategic rationale
+        • Analyst sentiment shifts and institutional ownership changes — specific rating changes, notable position changes
+        • Key risk factors by category: operational risks (execution, technology, supply chain), financial risks (leverage, currency, liquidity, capital allocation), regulatory risks (antitrust, export controls, data privacy, sanctions), market risks (cyclicality, macro sensitivity, competitive disruption)
+
+        **Risk prioritization**: Prioritize risks by materiality — impact on earnings, valuation, or competitive position. For each major risk, assess probability and magnitude, identify mitigating factors, and explain how the market is currently pricing it. Distinguish between well-known risks already priced in vs. underappreciated risks the market may be ignoring.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+        Do not use bullet-point lists in the output — use prose paragraphs and tables only.
 
         Begin the section with a top-level heading in this exact format: ## 7. Risks
-        Use ## for subsection headings within.
+        Use ### for subsection headings within.
 
         Save results in markdown format to drafts/section_7_risk_news.md
       hard_checks:

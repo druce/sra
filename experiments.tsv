@@ -1,2 +1,2 @@
 commit	total	completeness	length	insight	relevance	style	status	description
-fac93be	7.93	8.33	8.0	8.33	7.0	8.0	baseline	aligned prompt to rubric: ### headings, 1500-2200 length, peer table cols, historical context, no-bullets; relevance bottleneck from 16.4x fwd P/E repeated 5-6x
+58fad92	8.53	8.0	10.0	8.33	8.33	8.0	baseline	aligned prompt to rubric: ### headings, 2000-2800 length, risk prioritization, probability/magnitude, no-bullets; completeness/style bottleneck from missing analyst rating changes and institutional ownership shifts
