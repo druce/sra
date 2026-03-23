@@ -41,3 +41,4 @@
 - **Percentages**: 1 decimal place for margins, growth rates, yields, e.g., "23.4%", not "23.4123%"
 - **Ratios (P/E, EV/EBITDA)**: 1 decimal place, e.g., "18.3x"
 - **Share counts**: Express in millions or billions, e.g., "1.2 billion shares outstanding"
+- **Superscripts**: Use HTML `<sup>` tags, e.g., `<sup>1</sup>`, not caret syntax (`^1^`)
