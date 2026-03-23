@@ -1540,7 +1540,7 @@ tasks:
         • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings, debt maturity profile).
         • Analyze operating leverage (fixed vs. variable cost structure, scalability, margin sensitivity to revenue changes).
         • Analyze return on capital efficiency: ROE, ROIC trends over 3+ years, contextualized vs. semiconductor peers from key_ratios.csv.
-        • Analyze cash flow generation and working capital dynamics.
+        • Analyze cash flow generation and working capital dynamics. Include at least one explicit sensitivity scenario (e.g., "if revenue declines X%, FCF would fall to $Y" or "a Z-point margin compression would reduce FCF by $W").
         • Analyze capital allocation strategy (dividends, buybacks, reinvestment) — write this subsection in flowing prose paragraphs, NOT as a bullet-point list.
         • Include ONE peer comparison table benchmarking ${ticker} against 3-5 peers on margins, returns on capital, and leverage ratios. Present peer data ONLY in this single table — do not repeat the same metrics in other subsections.
 
