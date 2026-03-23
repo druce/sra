@@ -1537,12 +1537,16 @@ tasks:
         Write Section 5 of an equity research report on ${ticker}: Financial Strength.
 
         Cover:
-        • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings).
+        • Analyze the company's use of financial leverage (debt levels, interest obligations, credit ratings, debt maturity profile).
         • Analyze operating leverage (fixed vs. variable cost structure, scalability, margin sensitivity to revenue changes).
+        • Analyze return on capital efficiency: ROE, ROIC trends over 3+ years, contextualized vs. semiconductor peers from key_ratios.csv.
         • Analyze cash flow generation and working capital dynamics.
-        • Analyze capital allocation strategy (dividends, buybacks, reinvestment).
+        • Analyze capital allocation strategy (dividends, buybacks, reinvestment) — write this subsection in flowing prose paragraphs, NOT as a bullet-point list.
+        • Include ONE peer comparison table benchmarking ${ticker} against 3-5 peers on margins, returns on capital, and leverage ratios. Present peer data ONLY in this single table — do not repeat the same metrics in other subsections.
 
         Use a straightforward, factual tone throughout the analysis. Focus on data and observable facts rather than speculation.
+        IMPORTANT: Never present the same data point or metric in more than one subsection. Each number should appear exactly once.
+        IMPORTANT: Do not use bullet-point lists anywhere in the section. Use prose paragraphs for all analysis. Data tables are encouraged.
 
         Begin the section with a top-level heading in this exact format: ## 5. Financial Strength
         Use ### for subsection headings within (e.g., ### Financial Leverage, ### Operating Leverage).
